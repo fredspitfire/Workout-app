@@ -73,11 +73,11 @@ export async function generatePlan(db: DB, today = new Date()): Promise<Generate
 	const sessionsPerWeek = profile.sessionsPerWeek;
 	const cfg = GOALS[goal];
 
-	// 1. Retire any existing active block, then create the new one.
-	await db
-		.update(schema.blocks)
-		.set({ status: 'completed' })
-		.where(eq(schema.blocks.status, 'active'));
+	// 1. Replace any existing plan. We don't use historical blocks yet, so wipe
+	// them; cascades clear their phases/sessions/exercises, and logged sets
+	// survive because their session link is set to null on delete (real history
+	// is in logged_sets, not planned_sessions). Block archiving can come later.
+	await db.delete(schema.blocks);
 
 	const [block] = await db
 		.insert(schema.blocks)
