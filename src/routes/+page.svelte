@@ -1,8 +1,18 @@
 <script lang="ts">
 	import { generateRamp } from '$lib/engine';
 
-	// Placeholder session (no database yet — Phase 2). The ramps below are generated
-	// by the real engine, so this also proves the engine is wired into the UI.
+	let { data } = $props();
+
+	const goalLabels: Record<string, string> = {
+		strength: 'Strength',
+		hypertrophy: 'Size',
+		general: 'General',
+		hockey: 'Hockey support'
+	};
+	const goalLabel = goalLabels[data.profile.currentGoal] ?? data.profile.currentGoal;
+
+	// Placeholder session — the real plan is generated in Phase 6. The ramps below
+	// come from the real engine, so this proves the engine is wired into the UI.
 	const today = new Date().toLocaleDateString(undefined, {
 		weekday: 'long',
 		month: 'short',
@@ -25,7 +35,7 @@
 			<h1>Today</h1>
 			<p class="sub">{today}</p>
 		</div>
-		<span class="phase">Accumulation · Wk 2</span>
+		<span class="phase">{goalLabel} · Accumulation Wk 2</span>
 	</header>
 
 	<section class="card">
@@ -64,7 +74,10 @@
 
 	<button class="primary start">Start workout</button>
 
-	<p class="note">Skeleton build — sample session. Logging, your real plan & data come next.</p>
+	<p class="note">
+		Sample session — your real plan generates in a later step.
+		<a href="/setup">Edit setup</a>
+	</p>
 </main>
 
 <style>
