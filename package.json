@@ -15,7 +15,8 @@
 		"ramp": "tsx spikes/ramp-sanity.ts",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio",
-		"db:seed": "tsx src/lib/server/db/seed.ts"
+		"db:seed": "tsx src/lib/server/db/seed.ts",
+		"import:jefit": "tsx src/lib/server/db/import-cli.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
