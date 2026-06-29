@@ -1,0 +1,31 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Personal data — never commit (JEFIT export, local DB, backups)
+Jefit Data/
+*.bak
+data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

@@ -1,0 +1,9 @@
+node_modules
+.svelte-kit
+build
+.git
+.vscode
+Jefit Data
+*.preSvelte
+npm-debug.log
+.DS_Store

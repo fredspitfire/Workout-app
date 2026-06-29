@@ -1,0 +1,70 @@
+/* Base theme — dark, mobile-first, big tap targets for in-gym use. */
+:root {
+	--bg: #0b0f17;
+	--surface: #131a26;
+	--surface-2: #1b2536;
+	--border: #243044;
+	--text: #e6edf6;
+	--muted: #8da2bd;
+	--accent: #3b82f6;
+	--accent-2: #60a5fa;
+	--success: #22c55e;
+	--warning: #f59e0b;
+	--radius: 16px;
+	--tap: 48px; /* minimum touch target */
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family:
+		system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	-webkit-font-smoothing: antialiased;
+	overscroll-behavior-y: none;
+}
+
+body {
+	min-height: 100dvh;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right)
+		env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+h1,
+h2,
+h3 {
+	margin: 0;
+	line-height: 1.15;
+}
+
+a {
+	color: var(--accent-2);
+}
+
+button {
+	font: inherit;
+	min-height: var(--tap);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: var(--surface-2);
+	color: var(--text);
+	padding: 0 16px;
+	cursor: pointer;
+}
+
+button:active {
+	transform: scale(0.98);
+}
+
+button.primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: white;
+	font-weight: 600;
+}
