@@ -15,6 +15,9 @@ export interface Slot {
 
 export interface DayTemplate {
 	name: string;
+	/** How much this session taxes the legs (0 = none, 2 = leg-focused). Used to
+	 * keep leg days away from hockey so skating legs stay fresh. */
+	legLoad: 0 | 1 | 2;
 	slots: Slot[];
 }
 
@@ -23,26 +26,32 @@ const a = (group: string): Slot => ({ role: 'accessory', group });
 
 const FULL: DayTemplate = {
 	name: 'Full body',
+	legLoad: 1,
 	slots: [c('squat'), c('horiz_press'), c('vert_pull'), c('hinge'), a('lateral_raise'), a('biceps_curl'), a('triceps_ext'), a('calf')]
 };
 const UPPER: DayTemplate = {
 	name: 'Upper',
+	legLoad: 0,
 	slots: [c('horiz_press'), c('horiz_pull'), c('vert_press'), c('vert_pull'), a('lateral_raise'), a('biceps_curl'), a('triceps_ext')]
 };
 const LOWER: DayTemplate = {
 	name: 'Lower',
+	legLoad: 2,
 	slots: [c('squat'), c('hinge'), a('leg_ext'), a('leg_curl'), a('calf'), a('core')]
 };
 const PUSH: DayTemplate = {
 	name: 'Push',
+	legLoad: 0,
 	slots: [c('horiz_press'), c('vert_press'), c('incline_press'), a('triceps_ext'), a('lateral_raise'), a('chest_fly')]
 };
 const PULL: DayTemplate = {
 	name: 'Pull',
+	legLoad: 0,
 	slots: [c('vert_pull'), c('horiz_pull'), a('biceps_curl'), a('rear_delt'), a('core')]
 };
 const LEGS: DayTemplate = {
 	name: 'Legs',
+	legLoad: 2,
 	slots: [c('squat'), c('hinge'), a('leg_ext'), a('leg_curl'), a('calf')]
 };
 

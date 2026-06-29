@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.ts';
 import { GOALS, buildBlock, roundToIncrement, type Goal, type Phase } from '../../engine/index.ts';
 import { weekTemplates, type Slot } from './splitTemplates.ts';
+import { chooseLiftWeekdays, assignTemplatesToDays } from './schedule.ts';
 
 type DB = LibSQLDatabase<typeof schema>;
 
@@ -96,31 +97,40 @@ export async function generatePlan(db: DB, today = new Date()): Promise<Generate
 		}))
 	);
 
-	// 3. Choose exercises + figure out this week's dates (skip hockey days).
+	// 3. Choose exercises, recovery-aware lift weekdays, and content placement.
 	const byGroup = await chooseByGroup(db);
 	const commitments = await db.select().from(schema.recurringCommitments);
-	const hockey = new Set(commitments.map((c) => c.weekday));
+	const hockey = commitments.map((c) => c.weekday);
 
-	const dates: string[] = [];
-	const cursor = new Date(today);
-	for (let i = 0; i < 14 && dates.length < sessionsPerWeek; i++) {
-		if (!hockey.has(cursor.getDay())) dates.push(iso(cursor));
-		cursor.setDate(cursor.getDate() + 1);
-	}
+	const liftWeekdays = chooseLiftWeekdays(hockey, sessionsPerWeek);
+	const placed = assignTemplatesToDays(
+		liftWeekdays,
+		weekTemplates(profile.splitType, sessionsPerWeek),
+		hockey
+	);
+
+	// Map each lift weekday to its upcoming occurrence (stable weekly rhythm).
+	const todayWd = today.getDay();
+	const days = liftWeekdays
+		.map((wd, i) => {
+			const date = new Date(today);
+			date.setDate(date.getDate() + ((wd - todayWd + 7) % 7));
+			return { date: iso(date), template: placed[i] };
+		})
+		.sort((a, b) => a.date.localeCompare(b.date));
 
 	// 4. Build the week's sessions. New block opens in the On-Ramp phase.
 	const phase: Phase = 'onramp';
 	const range = cfg.repRange[phase];
 	const setCount = cfg.sets[phase];
 	const maxExercises = Math.max(3, Math.floor(profile.timeBudgetMin / 9));
-	const templates = weekTemplates(profile.splitType, sessionsPerWeek);
 
 	let exerciseCount = 0;
-	for (let d = 0; d < dates.length; d++) {
-		const template = templates[d];
+	for (let d = 0; d < days.length; d++) {
+		const template = days[d].template;
 		const [session] = await db
 			.insert(schema.plannedSessions)
-			.values({ blockId: block.id, date: dates[d], phase, orderIndex: d })
+			.values({ blockId: block.id, date: days[d].date, phase, orderIndex: d })
 			.returning({ id: schema.plannedSessions.id });
 
 		const slots = template.slots.slice(0, maxExercises);
@@ -133,7 +143,7 @@ export async function generatePlan(db: DB, today = new Date()): Promise<Generate
 		}
 	}
 
-	return { blockId: block.id, sessions: dates.length, exercises: exerciseCount };
+	return { blockId: block.id, sessions: days.length, exercises: exerciseCount };
 }
 
 function buildPrescription(
