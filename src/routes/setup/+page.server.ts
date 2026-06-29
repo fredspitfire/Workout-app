@@ -16,6 +16,11 @@ export const actions: Actions = {
 		const f = await request.formData();
 
 		const goal = String(f.get('goal') ?? 'strength') as Goal;
+		const splitType = String(f.get('splitType') ?? 'auto') as
+			| 'auto'
+			| 'fullbody'
+			| 'upper_lower'
+			| 'ppl';
 		const experience = String(f.get('experience') ?? 'intermediate') as
 			| 'beginner'
 			| 'intermediate'
@@ -26,7 +31,7 @@ export const actions: Actions = {
 		const days = f.getAll('commitmentDays').map((d) => Number(d));
 
 		// Upsert the single profile row.
-		const values = { currentGoal: goal, experience, sessionsPerWeek, timeBudgetMin, updatedAt: Date.now() };
+		const values = { currentGoal: goal, splitType, experience, sessionsPerWeek, timeBudgetMin, updatedAt: Date.now() };
 		await db
 			.insert(schema.profile)
 			.values({ id: 1, ...values })

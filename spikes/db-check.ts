@@ -8,7 +8,7 @@ const tables = await c.execute(
 );
 console.log('Tables:', tables.rows.map((x) => x.name).join(', '));
 
-const profile = await c.execute('SELECT current_goal, sessions_per_week, time_budget_min, experience FROM profile');
+const profile = await c.execute('SELECT current_goal, split_type, sessions_per_week, time_budget_min, experience FROM profile');
 console.log('Profile:', profile.rows[0] ?? '(none)');
 
 const commitments = await c.execute('SELECT label, weekday FROM recurring_commitments ORDER BY weekday');

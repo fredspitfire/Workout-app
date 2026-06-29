@@ -19,6 +19,10 @@ export const profile = sqliteTable('profile', {
 		.notNull()
 		.default('intermediate'),
 	currentGoal: text('current_goal').$type<Goal>().notNull().default('strength'),
+	splitType: text('split_type')
+		.$type<'auto' | 'fullbody' | 'upper_lower' | 'ppl'>()
+		.notNull()
+		.default('auto'),
 	sessionsPerWeek: integer('sessions_per_week').notNull().default(3),
 	timeBudgetMin: integer('time_budget_min').notNull().default(60),
 	updatedAt: integer('updated_at').notNull().$defaultFn(now)

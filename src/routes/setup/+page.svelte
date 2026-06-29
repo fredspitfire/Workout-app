@@ -8,6 +8,13 @@
 		{ id: 'hockey', label: 'Hockey support', blurb: 'Power, manage in-season' }
 	];
 
+	const splits = [
+		{ id: 'auto', label: 'Auto', blurb: 'Engine picks from your days' },
+		{ id: 'fullbody', label: 'Full body', blurb: 'Whole body each session' },
+		{ id: 'upper_lower', label: 'Upper / Lower', blurb: 'Alternate upper & lower' },
+		{ id: 'ppl', label: 'Push / Pull / Legs', blurb: 'Classic 3-way split' }
+	];
+
 	const weekdays = [
 		{ n: 0, label: 'Sun' },
 		{ n: 1, label: 'Mon' },
@@ -39,6 +46,21 @@
 						<span class="goal-body">
 							<span class="goal-label">{g.label}</span>
 							<span class="goal-blurb">{g.blurb}</span>
+						</span>
+					</label>
+				{/each}
+			</div>
+		</section>
+
+		<section class="card">
+			<h2>Plan structure</h2>
+			<div class="goals">
+				{#each splits as s}
+					<label class="goal">
+						<input type="radio" name="splitType" value={s.id} checked={(p?.splitType ?? 'auto') === s.id} />
+						<span class="goal-body">
+							<span class="goal-label">{s.label}</span>
+							<span class="goal-blurb">{s.blurb}</span>
 						</span>
 					</label>
 				{/each}
