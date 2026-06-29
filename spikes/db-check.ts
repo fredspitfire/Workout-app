@@ -22,3 +22,14 @@ const anchors = await c.execute(
 );
 console.log('Seeded working weights:');
 for (const r of anchors.rows) console.log(`   ${String(r.name).padEnd(32)} top ${r.current_top} x${r.last_rep_target}`);
+
+const blocks = await c.execute("SELECT id, goal, status, current_phase FROM blocks");
+console.log('Blocks:', blocks.rows.map((r) => `#${r.id} ${r.goal}/${r.status}/${r.current_phase}`).join(', ') || '(none)');
+const ps = await c.execute('SELECT id, date, phase FROM planned_sessions ORDER BY date');
+console.log('Planned sessions:', ps.rows.map((r) => `${r.date}(${r.phase})`).join(', ') || '(none)');
+const pe = await c.execute('SELECT count(*) AS n FROM planned_exercises');
+console.log('Planned exercises total:', pe.rows[0].n);
+const peByGroup = await c.execute(
+	'SELECT s.date, e.name FROM planned_exercises px JOIN planned_sessions s ON s.id = px.session_id JOIN exercises e ON e.id = px.exercise_id ORDER BY s.date, px.order_index LIMIT 8'
+);
+console.log('Sample prescriptions:', peByGroup.rows.map((r) => `${r.date}:${r.name}`).join(' | ') || '(none)');
