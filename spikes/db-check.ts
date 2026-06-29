@@ -25,8 +25,10 @@ for (const r of anchors.rows) console.log(`   ${String(r.name).padEnd(32)} top $
 
 const blocks = await c.execute("SELECT id, goal, status, current_phase FROM blocks");
 console.log('Blocks:', blocks.rows.map((r) => `#${r.id} ${r.goal}/${r.status}/${r.current_phase}`).join(', ') || '(none)');
-const ps = await c.execute('SELECT id, date, phase FROM planned_sessions ORDER BY date');
-console.log('Planned sessions:', ps.rows.map((r) => `${r.date}(${r.phase})`).join(', ') || '(none)');
+const ps = await c.execute('SELECT id, date, phase, status FROM planned_sessions ORDER BY date');
+console.log('Planned sessions:', ps.rows.map((r) => `#${r.id} ${r.date}(${r.phase}/${r.status})`).join(', ') || '(none)');
+const ls = await c.execute("SELECT count(*) AS n FROM logged_sets WHERE source='app'");
+console.log('App-logged sets:', ls.rows[0].n);
 const pe = await c.execute('SELECT count(*) AS n FROM planned_exercises');
 console.log('Planned exercises total:', pe.rows[0].n);
 const peByGroup = await c.execute(

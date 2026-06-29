@@ -95,7 +95,11 @@
 			</section>
 		{/each}
 
-		<button class="primary big">Start workout</button>
+		{#if data.session.status === 'completed'}
+			<div class="done-banner">Workout complete ✓</div>
+		{:else}
+			<a class="primary big startlink" href="/workout">Start workout</a>
+		{/if}
 		<p class="note">Engine-generated from your real weights. <a href="/setup">Edit setup</a></p>
 	{:else}
 		<!-- Rest day -->
@@ -232,6 +236,25 @@
 		height: 56px;
 		font-size: 17px;
 		margin-top: 4px;
+	}
+	.startlink {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		border-radius: 12px;
+	}
+	.done-banner {
+		height: 56px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 4px;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--success) 18%, var(--surface));
+		border: 1px solid var(--success);
+		color: var(--success);
+		font-weight: 700;
 	}
 	.note,
 	.muted {
