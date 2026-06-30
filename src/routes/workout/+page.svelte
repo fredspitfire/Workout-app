@@ -42,14 +42,15 @@
 	// Rest timer.
 	let rest = $state(0);
 	let restTimer: ReturnType<typeof setInterval> | undefined;
-	function startRest() {
+	function startRest(seconds: number) {
 		clearInterval(restTimer);
-		rest = 120;
+		rest = seconds;
 		restTimer = setInterval(() => {
 			rest = Math.max(0, rest - 1);
 			if (rest === 0) clearInterval(restTimer);
 		}, 1000);
 	}
+	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 	onDestroy(() => clearInterval(restTimer));
 
 	function logSet() {
@@ -67,7 +68,7 @@
 			if (adj !== null) log[i].straightWeight = adj;
 		}
 		if (log[i].done.length >= totalSets[i]) log[i].complete = true;
-		startRest();
+		startRest(ex.restSeconds ?? 120);
 	}
 
 	function adjustReps(delta: number) {
@@ -102,6 +103,7 @@
 				<h2>{ex.name}</h2>
 				<span class="target">
 					{#if ex.type === 'ramp'}ramp · {ex.repMax} reps{:else}{ex.sets} × {ex.repMin}–{ex.repMax}{/if}
+					· rest {fmt(ex.restSeconds)}
 				</span>
 			</div>
 

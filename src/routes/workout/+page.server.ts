@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			repMax: schema.plannedExercises.repMax,
 			sets: schema.plannedExercises.sets,
 			perSetIncrement: schema.plannedExercises.perSetIncrement,
+			restSeconds: schema.plannedExercises.restSeconds,
 			increment: schema.exercises.defaultIncrement
 		})
 		.from(schema.plannedExercises)

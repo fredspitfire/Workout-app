@@ -7,7 +7,7 @@
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.ts';
-import { GOALS, buildBlock, roundToIncrement, type Goal, type Phase } from '../../engine/index.ts';
+import { GOALS, buildBlock, roundToIncrement, restSeconds, type Goal, type Phase } from '../../engine/index.ts';
 import { weekTemplates, type Slot } from './splitTemplates.ts';
 import { chooseLiftWeekdays, assignTemplatesToDays } from './schedule.ts';
 
@@ -135,7 +135,7 @@ export async function generatePlan(db: DB, today = new Date()): Promise<Generate
 
 		const slots = template.slots.slice(0, maxExercises);
 		const rows = slots
-			.map((slot, i) => buildPrescription(slot, byGroup, range, setCount, session.id, i))
+			.map((slot, i) => buildPrescription(slot, byGroup, range, setCount, session.id, i, phase))
 			.filter((r): r is NonNullable<typeof r> => r !== null);
 		if (rows.length > 0) {
 			await db.insert(schema.plannedExercises).values(rows);
@@ -152,7 +152,8 @@ function buildPrescription(
 	range: { min: number; max: number },
 	setCount: number,
 	sessionId: number,
-	orderIndex: number
+	orderIndex: number,
+	phase: Phase
 ) {
 	const chosen = byGroup.get(slot.group);
 	if (!chosen) return null;
@@ -171,12 +172,14 @@ function buildPrescription(
 			repMin: range.min,
 			repMax: range.max,
 			sets: setCount,
-			perSetIncrement: Math.max(inc * 2, 5)
+			perSetIncrement: Math.max(inc * 2, 5),
+			restSeconds: restSeconds({ compound: true, repMax: range.max, phase })
 		};
 	}
 
 	// Accessory: straight sets, higher reps, no ramp.
 	const base = chosen.top ?? DEFAULT_ACC[chosen.equipmentType] ?? 25;
+	const repMax = Math.max(12, range.max + 4);
 	return {
 		sessionId,
 		exerciseId: chosen.id,
@@ -184,8 +187,9 @@ function buildPrescription(
 		prescriptionType: 'straight' as const,
 		topWeight: roundToIncrement(base, inc || 5),
 		repMin: Math.max(8, range.min + 3),
-		repMax: Math.max(12, range.max + 4),
+		repMax,
 		sets: 3,
-		perSetIncrement: null
+		perSetIncrement: null,
+		restSeconds: restSeconds({ compound: false, repMax, phase })
 	};
 }

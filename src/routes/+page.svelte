@@ -22,7 +22,7 @@
 		ppl: 'Push / Pull / Legs'
 	};
 
-	const goalLabel = goalLabels[data.profile.currentGoal] ?? data.profile.currentGoal;
+	const goalLabel = $derived(goalLabels[data.profile.currentGoal] ?? data.profile.currentGoal);
 
 	const todayLabel = new Date().toLocaleDateString(undefined, {
 		weekday: 'long',
@@ -114,6 +114,7 @@
 			<p class="lead">Nothing scheduled today.</p>
 			{#if nextSession}
 				<p class="muted">Next session: <b>{dayName(nextSession.date)}</b></p>
+				<a class="primary big startlink" href="/workout?session={nextSession.id}">Start it now</a>
 			{/if}
 		</section>
 		<section class="card">
@@ -121,12 +122,15 @@
 			<ul class="week">
 				{#each data.week as w}
 					<li class:isToday={w.date === data.today}>
-						<span>{dayName(w.date)}</span>
-						<span class="wphase">{phaseLabels[w.phase]}</span>
+						<a class="weeklink" href="/workout?session={w.id}">
+							<span>{dayName(w.date)}</span>
+							<span class="wphase">{phaseLabels[w.phase]} ›</span>
+						</a>
 					</li>
 				{/each}
 			</ul>
 		</section>
+		<p class="note"><a href="/setup">Edit setup</a></p>
 	{/if}
 </main>
 
@@ -281,15 +285,21 @@
 		gap: 8px;
 	}
 	.week li {
-		display: flex;
-		justify-content: space-between;
-		padding: 8px 10px;
 		border: 1px solid var(--border);
 		border-radius: 10px;
 		background: var(--surface-2);
 	}
 	.week li.isToday {
 		border-color: var(--accent);
+	}
+	.weeklink {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 12px;
+		min-height: var(--tap);
+		text-decoration: none;
+		color: var(--text);
 	}
 	.wphase {
 		color: var(--muted);

@@ -126,7 +126,8 @@ export const plannedExercises = sqliteTable('planned_exercises', {
 	repMin: integer('rep_min').notNull(),
 	repMax: integer('rep_max').notNull(),
 	sets: integer('sets').notNull().default(3),
-	perSetIncrement: real('per_set_increment') // ramp step between sets, nullable
+	perSetIncrement: real('per_set_increment'), // ramp step between sets, nullable
+	restSeconds: integer('rest_seconds').notNull().default(90) // engine-prescribed rest
 });
 
 /**
