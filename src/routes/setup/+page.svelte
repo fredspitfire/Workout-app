@@ -15,6 +15,15 @@
 		{ id: 'ppl', label: 'Push / Pull / Legs', blurb: 'Classic 3-way split' }
 	];
 
+	const equipmentOptions = [
+		{ type: 'barbell', label: 'Barbell + plates' },
+		{ type: 'dumbbell', label: 'Dumbbells' },
+		{ type: 'machine', label: 'Machines' },
+		{ type: 'cable', label: 'Cable machine' },
+		{ type: 'band', label: 'Resistance bands' }
+	];
+	const ownedTypes = new Set(data.equipment.filter((e) => e.available).map((e) => e.type));
+
 	const weekdays = [
 		{ n: 0, label: 'Sun' },
 		{ n: 1, label: 'Mon' },
@@ -65,6 +74,20 @@
 					</label>
 				{/each}
 			</div>
+		</section>
+
+		<section class="card">
+			<h2>Equipment</h2>
+			<p class="hint">What you can train with — exercises get matched to this.</p>
+			<div class="equip">
+				{#each equipmentOptions as eq}
+					<label class="chip">
+						<input type="checkbox" name="equipment" value={eq.type} checked={ownedTypes.has(eq.type)} />
+						<span>{eq.label}</span>
+					</label>
+				{/each}
+			</div>
+			<p class="subtle">Bodyweight is always available.</p>
 		</section>
 
 		<section class="card">
@@ -238,6 +261,39 @@
 		border-color: var(--accent);
 		color: var(--accent-2);
 		background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+	}
+	.equip {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.chip {
+		position: relative;
+		cursor: pointer;
+	}
+	.chip input {
+		position: absolute;
+		opacity: 0;
+	}
+	.chip span {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--tap);
+		padding: 0 14px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--surface-2);
+		font-size: 14px;
+	}
+	.chip input:checked + span {
+		border-color: var(--accent);
+		color: var(--accent-2);
+		background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+	}
+	.subtle {
+		color: var(--muted);
+		font-size: 12px;
+		margin: 10px 0 0;
 	}
 	.save {
 		height: 56px;
