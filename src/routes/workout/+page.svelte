@@ -21,8 +21,19 @@
 	let view = $state(0);
 	const allDone = $derived(log.every((l) => l.complete));
 
+	// Horizontal slide state (live finger-follow + slide-in on change).
+	let dragX = $state(0);
+	let dragging = $state(false);
+
 	function goTo(i: number) {
-		if (i >= 0 && i < n) view = i;
+		if (i < 0 || i >= n || i === view) {
+			dragX = 0;
+			return;
+		}
+		const dir = i > view ? 1 : -1;
+		view = i;
+		dragX = dir * 360; // new card starts off-screen, then slides to centre
+		requestAnimationFrame(() => requestAnimationFrame(() => (dragX = 0)));
 	}
 
 	function suggestedWeight(i: number): number {
@@ -92,15 +103,21 @@
 		inputWeight = Math.max(0, Number(inputWeight) + d);
 	}
 
-	// Swipe between exercises.
-	let touchX = 0;
+	// Swipe between exercises — card follows the finger, then snaps/slides.
+	let startX = 0;
 	function onTouchStart(e: TouchEvent) {
-		touchX = e.changedTouches[0].clientX;
+		startX = e.changedTouches[0].clientX;
+		dragging = true;
 	}
-	function onTouchEnd(e: TouchEvent) {
-		const dx = e.changedTouches[0].clientX - touchX;
-		if (dx < -50) goTo(view + 1);
-		else if (dx > 50) goTo(view - 1);
+	function onTouchMove(e: TouchEvent) {
+		if (dragging) dragX = e.changedTouches[0].clientX - startX;
+	}
+	function onTouchEnd() {
+		dragging = false;
+		const dx = dragX;
+		if (dx < -60) goTo(view + 1);
+		else if (dx > 60) goTo(view - 1);
+		else dragX = 0; // not far enough — snap back
 	}
 
 	const payload = $derived(
@@ -127,7 +144,13 @@
 		{/each}
 	</div>
 
-	<section class="card" ontouchstart={onTouchStart} ontouchend={onTouchEnd}>
+	<section
+		class="card"
+		style="transform: translateX({dragX}px); transition: {dragging ? 'none' : 'transform 0.25s ease'};"
+		ontouchstart={onTouchStart}
+		ontouchmove={onTouchMove}
+		ontouchend={onTouchEnd}
+	>
 		<div class="ex-head">
 			<h2>{ex.name}{#if st.complete}<span class="check"> ✓</span>{/if}</h2>
 			<span class="target">
@@ -208,6 +231,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+		overflow-x: hidden;
 	}
 	header {
 		display: flex;
@@ -253,6 +277,7 @@
 		padding: 18px;
 		min-height: 220px;
 		touch-action: pan-y;
+		will-change: transform;
 	}
 	.ex-head {
 		display: flex;
