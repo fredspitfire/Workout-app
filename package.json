@@ -33,6 +33,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.107.0",
 		"@libsql/client": "^0.17.4",
 		"drizzle-orm": "^0.45.2"
 	}
