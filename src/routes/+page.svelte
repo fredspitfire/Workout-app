@@ -42,7 +42,9 @@
 		});
 	}
 
-	const nextSession = $derived(data.week.find((w) => w.date >= (data.today ?? '')));
+	const nextSession = $derived(
+		data.week.find((w) => w.date >= (data.today ?? '') && w.status !== 'completed')
+	);
 </script>
 
 <main>
