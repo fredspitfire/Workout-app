@@ -7,6 +7,7 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema.ts';
+import { norm, baseKey } from './exerciseName.ts';
 
 const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? 'file:./data/coach.db' }), {
 	schema
@@ -42,8 +43,6 @@ const INC: Record<string, number> = {
 	other: 5
 };
 
-const norm = (s: string) => s.trim().toLowerCase();
-
 interface FreeExercise {
 	name: string;
 	equipment: string | null;
@@ -64,15 +63,17 @@ async function fetchData(): Promise<FreeExercise[]> {
 }
 
 const data = await fetchData();
-const existing = await db.select({ name: schema.exercises.name }).from(schema.exercises);
-const have = new Set(existing.map((e) => norm(e.name)));
+const existing = await db.select({ name: schema.exercises.name, source: schema.exercises.source }).from(schema.exercises);
+const haveExact = new Set(existing.map((e) => norm(e.name)));
+// Base names owned by the user's own lifts / seed — skip catalog dupes of these.
+const haveBase = new Set(existing.filter((e) => e.source !== 'catalog').map((e) => baseKey(e.name)));
 
 const rows: (typeof schema.exercises.$inferInsert)[] = [];
 for (const ex of data) {
 	if (!ex.name) continue;
 	const key = norm(ex.name);
-	if (have.has(key)) continue;
-	have.add(key);
+	if (haveExact.has(key) || haveBase.has(baseKey(ex.name))) continue;
+	haveExact.add(key);
 	const equipmentType = EQUIP[ex.equipment ?? ''] ?? 'other';
 	const muscle = ex.primaryMuscles?.[0] ?? 'unknown';
 	rows.push({
