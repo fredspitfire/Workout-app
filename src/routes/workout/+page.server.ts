@@ -1,5 +1,5 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { db, schema } from '$lib/server/db';
 import { topAchieved, type WorkingSet } from '$lib/engine';
 import type { PageServerLoad, Actions } from './$types';
@@ -46,7 +46,24 @@ export const load: PageServerLoad = async ({ url }) => {
 		.where(eq(schema.plannedExercises.sessionId, session.id))
 		.orderBy(asc(schema.plannedExercises.orderIndex));
 
-	return { profile, block, session, exercises };
+	// Recent history per exercise (last 3 sessions of that lift, app + imported).
+	const history: Record<number, { date: string; sets: { weight: number; reps: number }[] }[]> = {};
+	for (const ex of exercises) {
+		const rows = await db
+			.select({ date: schema.loggedSets.date, weight: schema.loggedSets.weight, reps: schema.loggedSets.reps })
+			.from(schema.loggedSets)
+			.where(eq(schema.loggedSets.exerciseId, ex.exerciseId))
+			.orderBy(desc(schema.loggedSets.date), asc(schema.loggedSets.setIndex))
+			.limit(50);
+		const byDate = new Map<string, { weight: number; reps: number }[]>();
+		for (const r of rows) {
+			if (!byDate.has(r.date)) byDate.set(r.date, []);
+			byDate.get(r.date)!.push({ weight: r.weight, reps: r.reps });
+		}
+		history[ex.exerciseId] = [...byDate.entries()].slice(0, 3).map(([date, sets]) => ({ date, sets }));
+	}
+
+	return { profile, block, session, exercises, history };
 };
 
 interface FinishPayload {

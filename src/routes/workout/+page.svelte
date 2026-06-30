@@ -54,6 +54,14 @@
 	onDestroy(() => clearInterval(restTimer));
 	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+	// Previous-sessions history for the current exercise.
+	let showHistory = $state(false);
+	function dayName(date: string) {
+		return new Date(date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	}
+	const histCompact = (sets: { weight: number; reps: number }[]) =>
+		sets.map((s) => `${s.weight}×${s.reps}`).join(', ');
+
 	function logSet() {
 		const i = view;
 		const ex = exercises[i];
@@ -160,6 +168,18 @@
 			</div>
 		{:else}
 			<p class="donenote">Done. Swipe or tap ❯ for the next exercise.</p>
+		{/if}
+
+		<button type="button" class="prevbtn" onclick={() => (showHistory = !showHistory)}>
+			{showHistory ? 'Hide' : 'Previous'} sessions
+		</button>
+		{#if showHistory}
+			<div class="histlist">
+				{#each data.history[ex.exerciseId] ?? [] as h}
+					<div class="histrow"><span class="hd">{dayName(h.date)}</span><span class="hs">{histCompact(h.sets)}</span></div>
+				{/each}
+				{#if !(data.history[ex.exerciseId]?.length)}<p class="muted">No previous logs for this lift.</p>{/if}
+			</div>
 		{/if}
 	</section>
 
@@ -330,6 +350,43 @@
 		font-size: 13px;
 		text-align: center;
 		margin: 4px 0 0;
+	}
+	.prevbtn {
+		margin-top: 14px;
+		width: 100%;
+		height: 44px;
+		background: transparent;
+		border-color: var(--border);
+		color: var(--accent-2);
+		font-size: 14px;
+	}
+	.histlist {
+		margin-top: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.histrow {
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+		font-size: 13px;
+		padding: 8px 10px;
+		background: var(--surface-2);
+		border-radius: 8px;
+	}
+	.hd {
+		color: var(--muted);
+		flex: 0 0 auto;
+	}
+	.hs {
+		font-variant-numeric: tabular-nums;
+		text-align: right;
+	}
+	.muted {
+		color: var(--muted);
+		font-size: 13px;
+		text-align: center;
 	}
 	.nav {
 		display: flex;

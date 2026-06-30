@@ -102,7 +102,10 @@
 		{:else}
 			<a class="primary big startlink" href="/workout">Start workout</a>
 		{/if}
-		<p class="note">Engine-generated from your real weights. <a href="/setup">Edit setup</a></p>
+		<p class="note">
+			Engine-generated from your real weights. <a href="/history">History</a> ·
+			<a href="/setup">Edit setup</a>
+		</p>
 	{:else}
 		<!-- Rest day -->
 		<header>
@@ -135,7 +138,7 @@
 				{/each}
 			</ul>
 		</section>
-		<p class="note"><a href="/setup">Edit setup</a></p>
+		<p class="note"><a href="/history">History</a> · <a href="/setup">Edit setup</a></p>
 	{/if}
 </main>
 
