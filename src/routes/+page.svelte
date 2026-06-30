@@ -111,20 +111,23 @@
 			<span class="phase">{goalLabel} · {phaseLabels[data.block.currentPhase]}</span>
 		</header>
 		<section class="card">
-			<p class="lead">Nothing scheduled today.</p>
 			{#if nextSession}
+				<p class="lead">Nothing scheduled today.</p>
 				<p class="muted">Next session: <b>{dayName(nextSession.date)}</b></p>
 				<a class="primary big startlink" href="/workout?session={nextSession.id}">Start it now</a>
+			{:else}
+				<p class="lead">All sessions done this week 💪</p>
+				<p class="muted">Nice work — the next block kicks off when the week wraps.</p>
 			{/if}
 		</section>
 		<section class="card">
 			<h2>This week</h2>
 			<ul class="week">
 				{#each data.week as w}
-					<li class:isToday={w.date === data.today}>
+					<li class:isToday={w.date === data.today} class:wdone={w.status === 'completed'}>
 						<a class="weeklink" href="/workout?session={w.id}">
 							<span>{dayName(w.date)}</span>
-							<span class="wphase">{phaseLabels[w.phase]} ›</span>
+							<span class="wphase">{w.status === 'completed' ? 'Done ✓' : phaseLabels[w.phase] + ' ›'}</span>
 						</a>
 					</li>
 				{/each}
@@ -291,6 +294,9 @@
 	}
 	.week li.isToday {
 		border-color: var(--accent);
+	}
+	.week li.wdone .wphase {
+		color: var(--success);
 	}
 	.weeklink {
 		display: flex;

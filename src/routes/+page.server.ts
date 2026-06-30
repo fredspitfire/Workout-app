@@ -17,7 +17,12 @@ export const load: PageServerLoad = async () => {
 	const today = isoDate(new Date());
 
 	const week = await db
-		.select({ id: schema.plannedSessions.id, date: schema.plannedSessions.date, phase: schema.plannedSessions.phase })
+		.select({
+			id: schema.plannedSessions.id,
+			date: schema.plannedSessions.date,
+			phase: schema.plannedSessions.phase,
+			status: schema.plannedSessions.status
+		})
 		.from(schema.plannedSessions)
 		.where(eq(schema.plannedSessions.blockId, block.id))
 		.orderBy(asc(schema.plannedSessions.date));

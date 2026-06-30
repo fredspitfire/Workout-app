@@ -4,8 +4,8 @@
 
 	let { data } = $props();
 	const exercises = data.exercises;
+	const n = exercises.length;
 
-	// Fixed per-exercise plan info (ramp plan / set counts) — not reactive.
 	const plans = exercises.map((ex) =>
 		ex.type === 'ramp'
 			? generateRamp(ex.topWeight, ex.repMax, ex.sets, ex.perSetIncrement ?? ex.increment, ex.increment)
@@ -13,13 +13,17 @@
 	);
 	const totalSets = exercises.map((ex, i) => (ex.type === 'ramp' ? plans[i]!.sets.length : ex.sets));
 
-	// Reactive logging state.
 	let log = $state(
 		exercises.map((ex) => ({ done: [] as { weight: number; reps: number }[], complete: false, straightWeight: ex.topWeight }))
 	);
 
-	const currentIndex = $derived(log.findIndex((l) => !l.complete));
-	const allDone = $derived(currentIndex === -1);
+	// Which exercise is on screen (one at a time). Starts on the first to do.
+	let view = $state(0);
+	const allDone = $derived(log.every((l) => l.complete));
+
+	function goTo(i: number) {
+		if (i >= 0 && i < n) view = i;
+	}
 
 	function suggestedWeight(i: number): number {
 		const ex = exercises[i];
@@ -27,19 +31,16 @@
 		return log[i].straightWeight;
 	}
 
-	// Editable inputs for the active set; reset whenever the active set changes.
 	let inputWeight = $state(0);
 	let inputReps = $state(0);
 	$effect(() => {
-		const i = currentIndex;
-		if (i === -1) return;
-		// depend on how many sets are done so this re-runs after each log
-		log[i].done.length;
+		const i = view;
+		log[i].done.length; // re-run after each logged set
 		inputWeight = suggestedWeight(i);
 		inputReps = exercises[i].repMax;
 	});
 
-	// Rest timer.
+	// Rest timer (engine-prescribed seconds).
 	let rest = $state(0);
 	let restTimer: ReturnType<typeof setInterval> | undefined;
 	function startRest(seconds: number) {
@@ -50,32 +51,48 @@
 			if (rest === 0) clearInterval(restTimer);
 		}, 1000);
 	}
-	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 	onDestroy(() => clearInterval(restTimer));
+	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 	function logSet() {
-		const i = currentIndex;
-		if (i === -1) return;
+		const i = view;
 		const ex = exercises[i];
 		const w = Number(inputWeight);
 		const r = Number(inputReps);
 		if (!Number.isFinite(w) || !Number.isFinite(r) || r < 0) return;
 
 		log[i].done = [...log[i].done, { weight: w, reps: r }];
-
 		if (ex.type === 'straight') {
 			const adj = intraSessionAdjust(log[i].straightWeight, log[i].done, { min: ex.repMin, max: ex.repMax }, { increment: ex.increment, stallLimit: 2 });
 			if (adj !== null) log[i].straightWeight = adj;
 		}
-		if (log[i].done.length >= totalSets[i]) log[i].complete = true;
-		startRest(ex.restSeconds ?? 120);
+		if (log[i].done.length >= totalSets[i]) {
+			log[i].complete = true;
+			startRest(ex.restSeconds ?? 120);
+			// Auto-advance to the next unfinished exercise.
+			const next = log.findIndex((l) => !l.complete);
+			if (next !== -1) setTimeout(() => goTo(next), 350);
+		} else {
+			startRest(ex.restSeconds ?? 120);
+		}
 	}
 
-	function adjustReps(delta: number) {
-		inputReps = Math.max(0, Number(inputReps) + delta);
+	function adjustReps(d: number) {
+		inputReps = Math.max(0, Number(inputReps) + d);
 	}
-	function adjustWeight(delta: number) {
-		inputWeight = Math.max(0, Number(inputWeight) + delta);
+	function adjustWeight(d: number) {
+		inputWeight = Math.max(0, Number(inputWeight) + d);
+	}
+
+	// Swipe between exercises.
+	let touchX = 0;
+	function onTouchStart(e: TouchEvent) {
+		touchX = e.changedTouches[0].clientX;
+	}
+	function onTouchEnd(e: TouchEvent) {
+		const dx = e.changedTouches[0].clientX - touchX;
+		if (dx < -50) goTo(view + 1);
+		else if (dx > 50) goTo(view - 1);
 	}
 
 	const payload = $derived(
@@ -86,66 +103,73 @@
 		})
 	);
 
-	const mins = $derived(Math.floor(rest / 60));
-	const secs = $derived(String(rest % 60).padStart(2, '0'));
+	const ex = $derived(exercises[view]);
+	const st = $derived(log[view]);
 </script>
 
 <main>
 	<header>
 		<a class="back" href="/">‹ Today</a>
-		<span class="count">{Math.min(currentIndex === -1 ? exercises.length : currentIndex + 1, exercises.length)} / {exercises.length}</span>
+		<span class="count">{view + 1} / {n}</span>
 	</header>
 
-	{#each exercises as ex, i}
-		{@const active = i === currentIndex}
-		<section class="card" class:active class:done={log[i].complete} class:upcoming={i > currentIndex && currentIndex !== -1}>
-			<div class="ex-head">
-				<h2>{ex.name}</h2>
-				<span class="target">
-					{#if ex.type === 'ramp'}ramp · {ex.repMax} reps{:else}{ex.sets} × {ex.repMin}–{ex.repMax}{/if}
-					· rest {fmt(ex.restSeconds)}
-				</span>
+	<div class="dots">
+		{#each exercises as _, i}
+			<button class="dot" class:active={i === view} class:done={log[i].complete} aria-label={`exercise ${i + 1}`} onclick={() => goTo(i)}></button>
+		{/each}
+	</div>
+
+	<section class="card" ontouchstart={onTouchStart} ontouchend={onTouchEnd}>
+		<div class="ex-head">
+			<h2>{ex.name}{#if st.complete}<span class="check"> ✓</span>{/if}</h2>
+			<span class="target">
+				{#if ex.type === 'ramp'}ramp · {ex.repMax} reps{:else}{ex.sets} × {ex.repMin}–{ex.repMax}{/if} · rest {fmt(ex.restSeconds)}
+			</span>
+		</div>
+
+		{#if st.done.length > 0}
+			<div class="chips">
+				{#each st.done as s}
+					<span class="set logged" class:miss={s.reps < ex.repMin}>{s.weight}<small>×{s.reps}</small></span>
+				{/each}
 			</div>
+		{/if}
 
-			<!-- logged sets -->
-			{#if log[i].done.length > 0}
-				<div class="chips">
-					{#each log[i].done as s}
-						<span class="set logged" class:miss={s.reps < ex.repMin}>{s.weight}<small>×{s.reps}</small></span>
-					{/each}
+		{#if !st.complete}
+			<div class="entry">
+				<div class="field">
+					<span class="lbl">Weight</span>
+					<div class="stepper">
+						<button type="button" onclick={() => adjustWeight(-(ex.increment || 5))}>−</button>
+						<input type="number" inputmode="decimal" bind:value={inputWeight} />
+						<button type="button" onclick={() => adjustWeight(ex.increment || 5)}>+</button>
+					</div>
 				</div>
-			{/if}
+				<div class="field">
+					<span class="lbl">Reps <em>(target {ex.repMax})</em></span>
+					<div class="stepper">
+						<button type="button" onclick={() => adjustReps(-1)}>−</button>
+						<input type="number" inputmode="numeric" bind:value={inputReps} />
+						<button type="button" onclick={() => adjustReps(1)}>+</button>
+					</div>
+				</div>
+				<button type="button" class="primary log" onclick={logSet}>Log set {st.done.length + 1}</button>
+				{#if ex.type === 'ramp'}
+					<p class="hint">Hit {ex.repMax}? Next set climbs. Miss it and the weight holds.</p>
+				{/if}
+			</div>
+		{:else}
+			<p class="donenote">Done. Swipe or tap ❯ for the next exercise.</p>
+		{/if}
+	</section>
 
-			<!-- active set entry -->
-			{#if active && !log[i].complete}
-				<div class="entry">
-					<div class="field">
-						<span class="lbl">Weight</span>
-						<div class="stepper">
-							<button type="button" onclick={() => adjustWeight(-ex.increment || -5)}>−</button>
-							<input type="number" inputmode="decimal" bind:value={inputWeight} />
-							<button type="button" onclick={() => adjustWeight(ex.increment || 5)}>+</button>
-						</div>
-					</div>
-					<div class="field">
-						<span class="lbl">Reps <em>(target {ex.repMax})</em></span>
-						<div class="stepper">
-							<button type="button" onclick={() => adjustReps(-1)}>−</button>
-							<input type="number" inputmode="numeric" bind:value={inputReps} />
-							<button type="button" onclick={() => adjustReps(1)}>+</button>
-						</div>
-					</div>
-					<button type="button" class="primary log" onclick={logSet}>Log set {log[i].done.length + 1}</button>
-					{#if ex.type === 'ramp'}
-						<p class="hint">Hit {ex.repMax}? Next set climbs. Miss it and the weight holds.</p>
-					{/if}
-				</div>
-			{/if}
-		</section>
-	{/each}
+	<div class="nav">
+		<button type="button" class="navbtn" onclick={() => goTo(view - 1)} disabled={view === 0}>❮ Prev</button>
+		<button type="button" class="navbtn" onclick={() => goTo(view + 1)} disabled={view === n - 1}>Next ❯</button>
+	</div>
 
 	{#if rest > 0}
-		<div class="rest">Rest {mins}:{secs}</div>
+		<div class="rest">Rest {fmt(rest)}</div>
 	{/if}
 
 	<form method="POST" action="?/finish">
@@ -179,22 +203,36 @@
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;
 	}
+	.dots {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+	.dot {
+		width: 22px;
+		height: 10px;
+		min-height: 10px;
+		padding: 0;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: var(--surface-2);
+	}
+	.dot.done {
+		background: var(--success);
+		border-color: var(--success);
+	}
+	.dot.active {
+		border-color: var(--accent);
+		background: var(--accent);
+	}
 	.card {
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid var(--accent);
 		border-radius: var(--radius);
-		padding: 16px;
-		transition: opacity 0.2s;
-	}
-	.card.upcoming {
-		opacity: 0.5;
-	}
-	.card.active {
-		border-color: var(--accent);
-	}
-	.card.done .ex-head h2::after {
-		content: ' ✓';
-		color: var(--success);
+		padding: 18px;
+		min-height: 220px;
+		touch-action: pan-y;
 	}
 	.ex-head {
 		display: flex;
@@ -203,19 +241,22 @@
 		gap: 12px;
 	}
 	h2 {
-		font-size: 17px;
+		font-size: 20px;
 		font-weight: 600;
+	}
+	.check {
+		color: var(--success);
 	}
 	.target {
 		color: var(--muted);
 		font-size: 13px;
-		white-space: nowrap;
+		text-align: right;
 	}
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
-		margin-top: 12px;
+		margin-top: 14px;
 	}
 	.set {
 		background: var(--surface-2);
@@ -238,7 +279,7 @@
 		color: var(--warning);
 	}
 	.entry {
-		margin-top: 16px;
+		margin-top: 18px;
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
@@ -261,17 +302,17 @@
 		gap: 8px;
 	}
 	.stepper button {
-		width: 56px;
-		height: 56px;
-		font-size: 24px;
+		width: 60px;
+		height: 60px;
+		font-size: 26px;
 		flex: 0 0 auto;
 	}
 	.stepper input {
 		flex: 1;
 		min-width: 0;
-		height: 56px;
+		height: 60px;
 		text-align: center;
-		font-size: 22px;
+		font-size: 24px;
 		font-weight: 700;
 		background: var(--surface-2);
 		border: 1px solid var(--border);
@@ -283,11 +324,23 @@
 		height: 56px;
 		font-size: 17px;
 	}
-	.hint {
+	.hint,
+	.donenote {
 		color: var(--muted);
-		font-size: 12px;
-		margin: 0;
+		font-size: 13px;
 		text-align: center;
+		margin: 4px 0 0;
+	}
+	.nav {
+		display: flex;
+		gap: 10px;
+	}
+	.navbtn {
+		flex: 1;
+		height: 48px;
+	}
+	.navbtn:disabled {
+		opacity: 0.4;
 	}
 	.rest {
 		position: sticky;
