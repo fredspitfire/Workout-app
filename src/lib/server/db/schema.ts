@@ -48,7 +48,7 @@ export const exercises = sqliteTable('exercises', {
 	isCompound: integer('is_compound', { mode: 'boolean' }).notNull().default(false),
 	defaultIncrement: real('default_increment').notNull().default(5),
 	substitutionGroup: text('substitution_group'),
-	source: text('source').$type<'builtin' | 'jefit' | 'custom'>().notNull().default('builtin'),
+	source: text('source').$type<'builtin' | 'jefit' | 'custom' | 'catalog'>().notNull().default('builtin'),
 	jefitId: text('jefit_id') // maps to JEFIT eid for import
 });
 
