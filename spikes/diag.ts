@@ -1,21 +1,15 @@
-/** Diagnostic: for the next planned session, show each exercise and how many
- *  history dates it has — to spot exercises whose history is under a different name. */
+/** Diagnostic: show the current plan's prescribed set counts per exercise. */
 import { createClient } from '@libsql/client';
 
 const c = createClient({ url: process.env.DATABASE_URL ?? 'file:./data/coach.db' });
-
-const sessions = await c.execute('SELECT id, date FROM planned_sessions ORDER BY date');
-for (const s of sessions.rows) {
-	console.log(`\nsession ${s.id} (${s.date})`);
-	const ex = await c.execute({
-		sql: `SELECT e.name,
-		             (SELECT count(DISTINCT date) FROM logged_sets WHERE exercise_id = e.id) AS hist_dates
-		      FROM planned_exercises px JOIN exercises e ON e.id = px.exercise_id
-		      WHERE px.session_id = ? ORDER BY px.order_index`,
-		args: [s.id]
-	});
-	for (const r of ex.rows) {
-		const flag = Number(r.hist_dates) === 0 ? '  <-- NO HISTORY' : '';
-		console.log(`  ${String(r.name).padEnd(30)} hist_days=${String(r.hist_dates).padEnd(4)}${flag}`);
-	}
+const rows = await c.execute(
+	`SELECT s.date, e.name, px.prescription_type AS type, px.sets
+	 FROM planned_exercises px
+	 JOIN planned_sessions s ON s.id = px.session_id
+	 JOIN exercises e ON e.id = px.exercise_id
+	 JOIN blocks b ON b.id = s.block_id AND b.status = 'active'
+	 ORDER BY s.date, px.order_index`
+);
+for (const r of rows.rows) {
+	console.log(`  ${String(r.date)}  ${String(r.name).padEnd(28)} ${r.type}  ${r.sets} sets`);
 }

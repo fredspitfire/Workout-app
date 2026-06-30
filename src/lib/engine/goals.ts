@@ -22,7 +22,7 @@ export const GOALS: Record<Goal, GoalConfig> = {
       intensification: { min: 2, max: 4 },
       deload: { min: 3, max: 5 },
     },
-    sets: { onramp: 3, accumulation: 4, intensification: 4, deload: 2 },
+    sets: { onramp: 5, accumulation: 5, intensification: 4, deload: 3 },
     deload: { weightMultiplier: 0.75, setMultiplier: 0.5 },
   },
   hypertrophy: {
@@ -32,7 +32,7 @@ export const GOALS: Record<Goal, GoalConfig> = {
       intensification: { min: 6, max: 10 },
       deload: { min: 8, max: 12 },
     },
-    sets: { onramp: 3, accumulation: 4, intensification: 4, deload: 2 },
+    sets: { onramp: 4, accumulation: 4, intensification: 4, deload: 3 },
     deload: { weightMultiplier: 0.65, setMultiplier: 0.6 },
   },
   general: {
@@ -42,12 +42,11 @@ export const GOALS: Record<Goal, GoalConfig> = {
       intensification: { min: 5, max: 8 },
       deload: { min: 8, max: 10 },
     },
-    sets: { onramp: 3, accumulation: 3, intensification: 3, deload: 2 },
+    sets: { onramp: 4, accumulation: 4, intensification: 4, deload: 3 },
     deload: { weightMultiplier: 0.7, setMultiplier: 0.6 },
   },
-  // Hockey-support: power/posterior emphasis, lower reps, conservative volume so
-  // lifting doesn't bury in-season recovery. (In-season fatigue management lives
-  // in the scheduler, not here.)
+  // Hockey-support: power/posterior emphasis, lower reps, ramp to a top set.
+  // (In-season fatigue management lives in the scheduler, not here.)
   hockey: {
     repRange: {
       onramp: { min: 5, max: 8 },
@@ -55,7 +54,7 @@ export const GOALS: Record<Goal, GoalConfig> = {
       intensification: { min: 3, max: 5 },
       deload: { min: 4, max: 6 },
     },
-    sets: { onramp: 3, accumulation: 3, intensification: 3, deload: 2 },
+    sets: { onramp: 5, accumulation: 5, intensification: 4, deload: 3 },
     deload: { weightMultiplier: 0.7, setMultiplier: 0.5 },
   },
 };
