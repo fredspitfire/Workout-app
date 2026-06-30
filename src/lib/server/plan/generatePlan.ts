@@ -20,8 +20,8 @@ type DB = LibSQLDatabase<typeof schema>;
 const iso = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const DEFAULT_TOP: Record<string, number> = { barbell: 95, dumbbell: 40, cable: 80, machine: 100, bodyweight: 0, unknown: 45 };
-const DEFAULT_ACC: Record<string, number> = { barbell: 45, dumbbell: 25, cable: 40, machine: 70, bodyweight: 0, unknown: 25 };
+export const DEFAULT_TOP: Record<string, number> = { barbell: 95, dumbbell: 40, cable: 80, machine: 100, bodyweight: 0, unknown: 45 };
+export const DEFAULT_ACC: Record<string, number> = { barbell: 45, dumbbell: 25, cable: 40, machine: 70, bodyweight: 0, unknown: 25 };
 
 // Slot movement group → catalog primary muscles (for pulling in alternatives).
 const SLOT_MUSCLES: Record<string, string[]> = {
@@ -44,7 +44,7 @@ const SLOT_MUSCLES: Record<string, string[]> = {
 	core: ['abdominals']
 };
 
-interface ExCtx {
+export interface ExCtx {
 	id: number;
 	name: string;
 	muscle: string;
@@ -58,7 +58,7 @@ interface ExCtx {
 }
 
 /** Load the equipment-matched library with history flags + seeded working weights. */
-async function loadContext(db: DB): Promise<ExCtx[]> {
+export async function loadContext(db: DB): Promise<ExCtx[]> {
 	const exs = await db.select().from(schema.exercises);
 	const states = await db.select().from(schema.exerciseState);
 	const topById = new Map(states.map((s) => [s.exerciseId, s.currentTop]));

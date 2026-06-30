@@ -1,7 +1,8 @@
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { and, asc, eq } from 'drizzle-orm';
 import { db, schema } from '$lib/server/db';
 import { generatePlan } from '$lib/server/plan/generatePlan';
+import { applyTweak } from '$lib/server/plan/applyTweak';
 import type { PageServerLoad, Actions } from './$types';
 
 const isoDate = (d: Date) =>
@@ -70,5 +71,11 @@ export const actions: Actions = {
 	generate: async () => {
 		await generatePlan(db);
 		throw redirect(303, '/');
+	},
+	tweak: async ({ request }) => {
+		const text = String((await request.formData()).get('tweak') ?? '').trim();
+		if (!text) return fail(400, { tweak: { ok: false, summary: 'Type a request first.', changed: 0 } });
+		const result = await applyTweak(db, text);
+		return { tweak: result };
 	}
 };

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { generateRamp } from '$lib/engine';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	const goalLabels: Record<string, string> = {
 		strength: 'Strength',
@@ -46,6 +46,16 @@
 		data.week.find((w) => w.date >= (data.today ?? '') && w.status !== 'completed')
 	);
 </script>
+
+{#snippet adjustBox()}
+	<section class="card">
+		<form method="POST" action="?/tweak" class="tweak">
+			<input name="tweak" placeholder="Adjust your plan — e.g. “my shoulder's tweaky”" autocomplete="off" />
+			<button class="primary adjust" type="submit">Adjust</button>
+		</form>
+		{#if form?.tweak}<p class="tweakmsg">{form.tweak.summary}</p>{/if}
+	</section>
+{/snippet}
 
 <main>
 	{#if !data.block}
@@ -102,6 +112,7 @@
 		{:else}
 			<a class="primary big startlink" href="/workout">Start workout</a>
 		{/if}
+		{@render adjustBox()}
 		<p class="note">
 			Engine-generated from your real weights. <a href="/history">History</a> ·
 			<a href="/setup">Edit setup</a>
@@ -138,6 +149,7 @@
 				{/each}
 			</ul>
 		</section>
+		{@render adjustBox()}
 		<p class="note"><a href="/history">History</a> · <a href="/setup">Edit setup</a></p>
 	{/if}
 </main>
@@ -267,6 +279,29 @@
 		border: 1px solid var(--success);
 		color: var(--success);
 		font-weight: 700;
+	}
+	.tweak {
+		display: flex;
+		gap: 8px;
+	}
+	.tweak input {
+		flex: 1;
+		min-width: 0;
+		min-height: var(--tap);
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		color: var(--text);
+		padding: 0 12px;
+		font: inherit;
+	}
+	.adjust {
+		flex: 0 0 auto;
+	}
+	.tweakmsg {
+		margin: 10px 0 0;
+		color: var(--accent-2);
+		font-size: 13px;
 	}
 	.note,
 	.muted {
