@@ -125,9 +125,16 @@ progression + missed-workout phase extension + dated games; **nightly SQLite bac
 **graceful error handling** (central `handleError`, themed error page, resilient actions).
 
 **Remaining (Phase 8–9):**
-- **Deploy** to the mini PC (Docker container or HA add-on). Needs on the box:
-  `DATABASE_URL`, `ANTHROPIC_API_KEY`, and **`ORIGIN=https://<host>`** (adapter-node
-  requires it or same-origin POSTs 403 — discovered during Phase 2).
+- **Deploy** to the mini PC (Docker container or HA add-on). Verified locally: the
+  adapter-node production build succeeds, the built server boots (backup scheduler
+  fires at init), and `ORIGIN` enforcement works (same-origin POST accepted, cross-
+  origin 403'd). Still to do *on the box*:
+  - Set env: `DATABASE_URL`, `ANTHROPIC_API_KEY`, **`ORIGIN=https://<host>`**
+    (adapter-node requires it or same-origin POSTs 403 — discovered during Phase 2).
+  - **Mount a persistent volume at `/app/data`** (`-v /host/path:/app/data`) or a
+    restart wipes the db + backups. The Dockerfile now declares `VOLUME /app/data`.
+  - Put a **login behind the reverse proxy** before internet exposure (single-user).
+  - **Rotate the `ANTHROPIC_API_KEY`** first (see Security below).
 - Pre-launch security/scalability audits (prompts in the plan doc §17).
 
 ---

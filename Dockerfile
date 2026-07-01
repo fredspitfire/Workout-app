@@ -16,5 +16,10 @@ ENV PORT=3000
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+# The SQLite db + its nightly backups live here — the owner's entire training
+# history. MUST be a persisted volume, or a container restart wipes everything.
+# Run with:  -v /host/path/coach-data:/app/data
+# Required env at runtime: DATABASE_URL, ANTHROPIC_API_KEY, ORIGIN=https://<host>
+VOLUME ["/app/data"]
 EXPOSE 3000
 CMD ["node", "build"]
