@@ -27,7 +27,7 @@ hockey-game calendar and recovering gracefully from missed workouts.
 |---|---|
 | App | SvelteKit (Svelte 5 runes) + `@sveltejs/adapter-node` |
 | DB | SQLite via `@libsql/client` + Drizzle ORM (single file `data/coach.db`) |
-| AI | `@anthropic-ai/sdk`, model `claude-sonnet-4-6` |
+| AI | `@anthropic-ai/sdk`, model `claude-sonnet-5` (thinking disabled for the JSON calls) |
 | Frontend | PWA (installable, dark mobile-first), server-rendered |
 | Deploy target | Docker container on the owner's Home Assistant **mini PC** (not a Lovelace dashboard); phone uses the PWA icon |
 
@@ -122,7 +122,8 @@ Done: project skeleton + PWA + Docker; data model + setup; JEFIT import
 scheduling; rest timers; history page + in-exercise history; single-exercise swipe
 logging; full exercise catalog (~1000, equipment-matched, deduped); week-to-week
 progression + missed-workout phase extension + dated games; **nightly SQLite backups**;
-**graceful error handling** (central `handleError`, themed error page, resilient actions).
+**graceful error handling** (central `handleError`, themed error page, resilient actions);
+**pre-launch security audit** + input-validation hardening. AI model is `claude-sonnet-5`.
 
 **Remaining (Phase 8–9):**
 - **Deploy** to the mini PC (Docker container or HA add-on). Verified locally: the
@@ -135,7 +136,12 @@ progression + missed-workout phase extension + dated games; **nightly SQLite bac
     restart wipes the db + backups. The Dockerfile now declares `VOLUME /app/data`.
   - Put a **login behind the reverse proxy** before internet exposure (single-user).
   - **Rotate the `ANTHROPIC_API_KEY`** first (see Security below).
-- Pre-launch security/scalability audits (prompts in the plan doc §17).
+- ~~Pre-launch security audit~~ **done** (plan §17). Findings: no SQL injection
+  (Drizzle parameterizes; AI swaps are validated, engine owns weights; ORIGIN/CSRF
+  enforced). Fixed: server input validation on `/setup` and `/workout` finish. The
+  only HIGH items left are owner actions — **reverse-proxy login before internet
+  exposure** and **API-key rotation**. `npm audit` findings are all dev-only
+  (esbuild/drizzle-kit), not shipped to prod.
 
 ---
 
@@ -195,5 +201,6 @@ progression + missed-workout phase extension + dated games; **nightly SQLite bac
   prior week's planned sessions; logged history is preserved in `logged_sets`).
 - Week boundaries are approximate (dates computed from "today" at generate/advance).
 - Offline logging is a nice-to-have, not implemented (owner has signal at home).
-- Model id is set in `selectExercises.ts` and `tweakPlan.ts` (`claude-sonnet-4-6`);
-  could be centralized / swapped to Haiku for lower cost.
+- Model id is set in `selectExercises.ts` and `tweakPlan.ts` (`claude-sonnet-5`, with
+  `thinking: {type:'disabled'}` on the structured-JSON calls); could be centralized /
+  swapped to Haiku for lower cost. Usage is tiny (single user), so cost is negligible.
