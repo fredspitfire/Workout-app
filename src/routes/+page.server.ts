@@ -20,24 +20,11 @@ export const load: PageServerLoad = async () => {
 		.orderBy(asc(schema.datedEvents.date));
 
 	const [block] = await db.select().from(schema.blocks).where(eq(schema.blocks.status, 'active'));
-	if (!block) return { profile, block: null, session: null, exercises: [], week: [], games };
 
-	const week = await db
-		.select({
-			id: schema.plannedSessions.id,
-			date: schema.plannedSessions.date,
-			phase: schema.plannedSessions.phase,
-			status: schema.plannedSessions.status
-		})
-		.from(schema.plannedSessions)
-		.where(eq(schema.plannedSessions.blockId, block.id))
-		.orderBy(asc(schema.plannedSessions.date));
-
-	const [session] = await db
-		.select()
-		.from(schema.plannedSessions)
-		.where(and(eq(schema.plannedSessions.blockId, block.id), eq(schema.plannedSessions.date, today)));
-
+	// Populate below when a block exists. Single return shape (not a union of
+	// two shapes) — a union trips up the template's `data.block` narrowing → `never`.
+	let week: { id: number; date: string; phase: string; status: string }[] = [];
+	let session: typeof schema.plannedSessions.$inferSelect | null = null;
 	let exercises: Array<{
 		id: number;
 		name: string;
@@ -50,26 +37,45 @@ export const load: PageServerLoad = async () => {
 		increment: number;
 	}> = [];
 
-	if (session) {
-		exercises = await db
+	if (block) {
+		week = await db
 			.select({
-				id: schema.plannedExercises.id,
-				name: schema.exercises.name,
-				type: schema.plannedExercises.prescriptionType,
-				topWeight: schema.plannedExercises.topWeight,
-				repMin: schema.plannedExercises.repMin,
-				repMax: schema.plannedExercises.repMax,
-				sets: schema.plannedExercises.sets,
-				perSetIncrement: schema.plannedExercises.perSetIncrement,
-				increment: schema.exercises.defaultIncrement
+				id: schema.plannedSessions.id,
+				date: schema.plannedSessions.date,
+				phase: schema.plannedSessions.phase,
+				status: schema.plannedSessions.status
 			})
-			.from(schema.plannedExercises)
-			.innerJoin(schema.exercises, eq(schema.exercises.id, schema.plannedExercises.exerciseId))
-			.where(eq(schema.plannedExercises.sessionId, session.id))
-			.orderBy(asc(schema.plannedExercises.orderIndex));
+			.from(schema.plannedSessions)
+			.where(eq(schema.plannedSessions.blockId, block.id))
+			.orderBy(asc(schema.plannedSessions.date));
+
+		const [s] = await db
+			.select()
+			.from(schema.plannedSessions)
+			.where(and(eq(schema.plannedSessions.blockId, block.id), eq(schema.plannedSessions.date, today)));
+		session = s ?? null;
+
+		if (session) {
+			exercises = await db
+				.select({
+					id: schema.plannedExercises.id,
+					name: schema.exercises.name,
+					type: schema.plannedExercises.prescriptionType,
+					topWeight: schema.plannedExercises.topWeight,
+					repMin: schema.plannedExercises.repMin,
+					repMax: schema.plannedExercises.repMax,
+					sets: schema.plannedExercises.sets,
+					perSetIncrement: schema.plannedExercises.perSetIncrement,
+					increment: schema.exercises.defaultIncrement
+				})
+				.from(schema.plannedExercises)
+				.innerJoin(schema.exercises, eq(schema.exercises.id, schema.plannedExercises.exerciseId))
+				.where(eq(schema.plannedExercises.sessionId, session.id))
+				.orderBy(asc(schema.plannedExercises.orderIndex));
+		}
 	}
 
-	return { profile, block, session: session ?? null, exercises, week, today, games };
+	return { profile, block: block ?? null, session, exercises, week, today, games };
 };
 
 export const actions: Actions = {

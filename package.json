@@ -20,7 +20,8 @@
 		"import:catalog": "tsx src/lib/server/db/import-catalog.ts",
 		"dedup:catalog": "tsx src/lib/server/db/dedup-catalog.ts",
 		"db:backup": "tsx src/lib/server/db/backup-cli.ts",
-		"gen:icons": "tsx scripts/gen-icons.ts"
+		"gen:icons": "tsx scripts/gen-icons.ts",
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
@@ -33,7 +34,8 @@
 		"svelte-check": "^4.6.0",
 		"tsx": "^4.22.4",
 		"typescript": "^6.0.3",
-		"vite": "^8.0.16"
+		"vite": "^8.0.16",
+		"vitest": "^4.1.9"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.107.0",

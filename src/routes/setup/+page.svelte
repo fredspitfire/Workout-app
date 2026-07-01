@@ -22,7 +22,7 @@
 		{ type: 'cable', label: 'Cable machine' },
 		{ type: 'band', label: 'Resistance bands' }
 	];
-	const ownedTypes = new Set(data.equipment.filter((e) => e.available).map((e) => e.type));
+	const ownedTypes = new Set<string>(data.equipment.filter((e) => e.available).map((e) => e.type));
 
 	const weekdays = [
 		{ n: 0, label: 'Sun' },

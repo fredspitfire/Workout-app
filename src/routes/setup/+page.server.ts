@@ -1,11 +1,15 @@
 import { redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, type InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '$lib/server/db';
 import type { Goal } from '$lib/engine';
 import type { PageServerLoad, Actions } from './$types';
 
+// The equipment.type column is a typed union in the schema; mirror it so the
+// literals below (and the DB writes) stay type-checked against it.
+type EquipmentType = InferSelectModel<typeof schema.equipment>['type'];
+
 // Canonical equipment types the user can own (bodyweight is always available).
-const EQUIPMENT_TYPES: { type: string; name: string; inc: number }[] = [
+const EQUIPMENT_TYPES: { type: EquipmentType; name: string; inc: number }[] = [
 	{ type: 'barbell', name: 'Barbell', inc: 5 },
 	{ type: 'dumbbell', name: 'Dumbbells', inc: 5 },
 	{ type: 'machine', name: 'Machines', inc: 10 },

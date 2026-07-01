@@ -1,0 +1,22 @@
+name: CI
+
+# The HA add-on builds from `main`, so a broken main = a broken deploy.
+# Gate every push/PR on the same steps: typecheck, engine tests, production build.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build

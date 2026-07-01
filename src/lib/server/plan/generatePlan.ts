@@ -77,7 +77,7 @@ export async function loadContext(db: DB): Promise<ExCtx[]> {
 	const hist = await db.selectDistinct({ id: schema.loggedSets.exerciseId }).from(schema.loggedSets);
 	const histIds = new Set(hist.map((h) => h.id));
 
-	const available = new Set(
+	const available = new Set<string>(
 		(await db.select().from(schema.equipment)).filter((e) => e.available).map((e) => e.type)
 	);
 	available.add('bodyweight');
