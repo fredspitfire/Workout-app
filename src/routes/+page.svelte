@@ -60,6 +60,30 @@
 	</section>
 {/snippet}
 
+{#snippet gamesBox()}
+	<section class="card">
+		<h2>Hockey games</h2>
+		<p class="hint">Add game dates and the plan works around them — legs stay off the day before.</p>
+		{#if data.games?.length}
+			<ul class="games">
+				{#each data.games as g}
+					<li>
+						<span>{dayName(g.date)} — {g.label}</span>
+						<form method="POST" action="?/removeGame">
+							<input type="hidden" name="id" value={g.id} />
+							<button class="rm" type="submit" aria-label="remove">×</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		<form method="POST" action="?/addGame" class="addgame">
+			<input type="date" name="date" required />
+			<button class="primary adjust" type="submit">Add</button>
+		</form>
+	</section>
+{/snippet}
+
 <main>
 	{#if !data.block}
 		<!-- No plan yet -->
@@ -115,6 +139,7 @@
 		{:else}
 			<a class="primary big startlink" href="/workout">Start workout</a>
 		{/if}
+		{@render gamesBox()}
 		{@render adjustBox()}
 		<p class="note">
 			Engine-generated from your real weights. <a href="/history">History</a> ·
@@ -152,6 +177,7 @@
 				{/each}
 			</ul>
 		</section>
+		{@render gamesBox()}
 		{@render adjustBox()}
 		<p class="note"><a href="/history">History</a> · <a href="/setup">Edit setup</a></p>
 	{/if}
@@ -314,6 +340,46 @@
 		border-color: var(--border);
 		color: var(--accent-2);
 		font-size: 13px;
+	}
+	.games {
+		list-style: none;
+		margin: 0 0 12px;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.games li {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 10px;
+		font-size: 14px;
+	}
+	.rm {
+		min-height: 32px;
+		width: 32px;
+		padding: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--muted);
+		font-size: 18px;
+		line-height: 1;
+	}
+	.addgame {
+		display: flex;
+		gap: 8px;
+	}
+	.addgame input {
+		flex: 1;
+		min-width: 0;
+		min-height: var(--tap);
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		color: var(--text);
+		padding: 0 12px;
+		font: inherit;
 	}
 	.note,
 	.muted {

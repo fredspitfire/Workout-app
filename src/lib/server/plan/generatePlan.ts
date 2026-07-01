@@ -8,7 +8,7 @@
  * preferring your real lifts); the deterministic engine owns every number.
  */
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import { eq } from 'drizzle-orm';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import * as schema from '../db/schema.ts';
 import { GOALS, buildBlock, roundToIncrement, restSeconds, type Goal, type Phase } from '../../engine/index.ts';
 import { weekTemplates, type Slot } from './splitTemplates.ts';
@@ -137,7 +137,18 @@ async function generateWeek(db: DB, blockId: number, phase: Phase, profile: Prof
 
 	const ctx = await loadContext(db);
 	const commitments = await db.select().from(schema.recurringCommitments);
-	const hockey = commitments.map((c) => c.weekday);
+
+	// Fold any dated games falling in this week into the recovery schedule, so the
+	// engine keeps legs off the day before a game just like a recurring practice.
+	const weekEnd = new Date(today);
+	weekEnd.setDate(weekEnd.getDate() + 6);
+	const games = await db
+		.select()
+		.from(schema.datedEvents)
+		.where(and(gte(schema.datedEvents.date, iso(today)), lte(schema.datedEvents.date, iso(weekEnd))));
+	const gameWeekdays = games.map((g) => new Date(g.date + 'T00:00:00').getDay());
+	const hockey = [...new Set([...commitments.map((c) => c.weekday), ...gameWeekdays])];
+
 	const liftWeekdays = chooseLiftWeekdays(hockey, sessionsPerWeek);
 	const placed = assignTemplatesToDays(liftWeekdays, weekTemplates(profile.splitType, sessionsPerWeek), hockey);
 
