@@ -8,7 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '$env/dynamic/private';
 
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = 'claude-sonnet-5';
 
 export interface TweakExercise {
 	plannedId: number;
@@ -43,6 +43,9 @@ export async function tweakPlan(request: string, exercises: TweakExercise[]): Pr
 		const res = await client.messages.create({
 			model: MODEL,
 			max_tokens: 800,
+			// Structured JSON swaps — no reasoning needed. Sonnet 5 runs adaptive
+			// thinking by default; disable it to keep this fast, cheap, and within budget.
+			thinking: { type: 'disabled' },
 			system: SYSTEM,
 			messages: [{ role: 'user', content: JSON.stringify({ request, exercises }) }]
 		});
