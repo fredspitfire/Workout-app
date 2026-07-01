@@ -1,6 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, ne } from 'drizzle-orm';
 import { db, schema } from '$lib/server/db';
+import { advanceWeek } from '$lib/server/plan/generatePlan';
 import { topAchieved, type WorkingSet } from '$lib/engine';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -101,6 +102,20 @@ export const actions: Actions = {
 			.update(schema.plannedSessions)
 			.set({ status: 'completed' })
 			.where(eq(schema.plannedSessions.id, payload.sessionId));
+
+		// If that was the last session of the week, advance the block (progress the
+		// weights; the engine extends the phase instead if sessions were missed).
+		const [sess] = await db
+			.select({ blockId: schema.plannedSessions.blockId })
+			.from(schema.plannedSessions)
+			.where(eq(schema.plannedSessions.id, payload.sessionId));
+		if (sess) {
+			const remaining = await db
+				.select({ id: schema.plannedSessions.id })
+				.from(schema.plannedSessions)
+				.where(and(eq(schema.plannedSessions.blockId, sess.blockId), ne(schema.plannedSessions.status, 'completed')));
+			if (remaining.length === 0) await advanceWeek(db);
+		}
 
 		// 3. Update each exercise's stored working max. Only ever RAISE it — an
 		//    intentionally-light On-Ramp session must not drag your true max down.

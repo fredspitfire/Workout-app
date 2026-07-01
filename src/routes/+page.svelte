@@ -54,6 +54,9 @@
 			<button class="primary adjust" type="submit">Adjust</button>
 		</form>
 		{#if form?.tweak}<p class="tweakmsg">{form.tweak.summary}</p>{/if}
+		<form method="POST" action="?/advance">
+			<button type="submit" class="linkbtn">Advance to next week ›</button>
+		</form>
 	</section>
 {/snippet}
 
@@ -300,6 +303,15 @@
 	}
 	.tweakmsg {
 		margin: 10px 0 0;
+		color: var(--accent-2);
+		font-size: 13px;
+	}
+	.linkbtn {
+		margin-top: 12px;
+		width: 100%;
+		height: 40px;
+		background: transparent;
+		border-color: var(--border);
 		color: var(--accent-2);
 		font-size: 13px;
 	}
