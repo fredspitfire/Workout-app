@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { enhance } from '$app/forms';
 	import { generateRamp, nextRampWeight, intraSessionAdjust } from '$lib/engine';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	const exercises = data.exercises;
 	const n = exercises.length;
 
@@ -215,7 +216,8 @@
 		<div class="rest">Rest {fmt(rest)}</div>
 	{/if}
 
-	<form method="POST" action="?/finish">
+	{#if form?.error}<p class="errbanner" role="alert">{form.error}</p>{/if}
+	<form method="POST" action="?/finish" use:enhance>
 		<input type="hidden" name="payload" value={payload} />
 		<button type="submit" class="primary finish" class:ready={allDone}>
 			{allDone ? 'Finish workout ✓' : 'Finish early'}
@@ -435,6 +437,16 @@
 		border-radius: 999px;
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
+	}
+	.errbanner {
+		margin: 0;
+		padding: 12px 14px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+		border: 1px solid var(--danger);
+		color: var(--text);
+		font-size: 14px;
+		text-align: center;
 	}
 	.finish {
 		height: 56px;

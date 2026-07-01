@@ -83,7 +83,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'bad payload' });
 		}
 
-		// 1. Persist every logged set.
+		// 1. Persist the essential result atomically: every logged set + the session
+		//    marked done. In one transaction so a mid-write failure can't leave the
+		//    session "done" with no sets, or half-inserted sets that a retry doubles.
 		const rows = payload.exercises.flatMap((ex) =>
 			ex.sets.map((s, i) => ({
 				sessionId: payload.sessionId,
@@ -95,49 +97,59 @@ export const actions: Actions = {
 				source: 'app' as const
 			}))
 		);
-		if (rows.length > 0) await db.insert(schema.loggedSets).values(rows);
-
-		// 2. Mark the session done.
-		await db
-			.update(schema.plannedSessions)
-			.set({ status: 'completed' })
-			.where(eq(schema.plannedSessions.id, payload.sessionId));
-
-		// If that was the last session of the week, advance the block (progress the
-		// weights; the engine extends the phase instead if sessions were missed).
-		const [sess] = await db
-			.select({ blockId: schema.plannedSessions.blockId })
-			.from(schema.plannedSessions)
-			.where(eq(schema.plannedSessions.id, payload.sessionId));
-		if (sess) {
-			const remaining = await db
-				.select({ id: schema.plannedSessions.id })
-				.from(schema.plannedSessions)
-				.where(and(eq(schema.plannedSessions.blockId, sess.blockId), ne(schema.plannedSessions.status, 'completed')));
-			if (remaining.length === 0) await advanceWeek(db);
+		try {
+			await db.transaction(async (tx) => {
+				if (rows.length > 0) await tx.insert(schema.loggedSets).values(rows);
+				await tx
+					.update(schema.plannedSessions)
+					.set({ status: 'completed' })
+					.where(eq(schema.plannedSessions.id, payload.sessionId));
+			});
+		} catch (e) {
+			console.error('[workout finish] failed to persist session', payload.sessionId, e);
+			return fail(500, { error: 'Couldn’t save your workout. Please try again.' });
 		}
 
-		// 3. Update each exercise's stored working max. Only ever RAISE it — an
-		//    intentionally-light On-Ramp session must not drag your true max down.
-		//    (Phase-aware progression — climbing across the block, regressing on
-		//    real stalls — is Phase 7; this just keeps the anchor honest for now.)
-		for (const ex of payload.exercises) {
-			const achieved = topAchieved(ex.sets as WorkingSet[], ex.repTarget);
-			if (achieved <= 0) continue;
-			const [existing] = await db
-				.select()
-				.from(schema.exerciseState)
-				.where(eq(schema.exerciseState.exerciseId, ex.exerciseId));
-			if (!existing) {
-				await db
-					.insert(schema.exerciseState)
-					.values({ exerciseId: ex.exerciseId, currentTop: achieved, lastRepTarget: ex.repTarget });
-			} else if (achieved > existing.currentTop) {
-				await db
-					.update(schema.exerciseState)
-					.set({ currentTop: achieved, lastRepTarget: ex.repTarget, updatedAt: Date.now() })
-					.where(eq(schema.exerciseState.id, existing.id));
+		// 2. Derived follow-ups (below) are best-effort: the workout is already saved,
+		//    so a failure here must NOT 500 the user or tempt a re-submit. Log and move
+		//    on — these self-heal on the next finish / plan generation.
+		try {
+			// If that was the last session of the week, advance the block (progress the
+			// weights; the engine extends the phase instead if sessions were missed).
+			const [sess] = await db
+				.select({ blockId: schema.plannedSessions.blockId })
+				.from(schema.plannedSessions)
+				.where(eq(schema.plannedSessions.id, payload.sessionId));
+			if (sess) {
+				const remaining = await db
+					.select({ id: schema.plannedSessions.id })
+					.from(schema.plannedSessions)
+					.where(and(eq(schema.plannedSessions.blockId, sess.blockId), ne(schema.plannedSessions.status, 'completed')));
+				if (remaining.length === 0) await advanceWeek(db);
 			}
+
+			// Update each exercise's stored working max. Only ever RAISE it — an
+			// intentionally-light On-Ramp session must not drag your true max down.
+			for (const ex of payload.exercises) {
+				const achieved = topAchieved(ex.sets as WorkingSet[], ex.repTarget);
+				if (achieved <= 0) continue;
+				const [existing] = await db
+					.select()
+					.from(schema.exerciseState)
+					.where(eq(schema.exerciseState.exerciseId, ex.exerciseId));
+				if (!existing) {
+					await db
+						.insert(schema.exerciseState)
+						.values({ exerciseId: ex.exerciseId, currentTop: achieved, lastRepTarget: ex.repTarget });
+				} else if (achieved > existing.currentTop) {
+					await db
+						.update(schema.exerciseState)
+						.set({ currentTop: achieved, lastRepTarget: ex.repTarget, updatedAt: Date.now() })
+						.where(eq(schema.exerciseState.id, existing.id));
+				}
+			}
+		} catch (e) {
+			console.error('[workout finish] post-save follow-up failed (workout was saved)', e);
 		}
 
 		throw redirect(303, '/');

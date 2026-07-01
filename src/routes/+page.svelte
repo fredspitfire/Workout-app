@@ -81,10 +81,12 @@
 			<input type="date" name="date" required />
 			<button class="primary adjust" type="submit">Add</button>
 		</form>
+		{#if form?.gameError}<p class="errmsg" role="alert">{form.gameError}</p>{/if}
 	</section>
 {/snippet}
 
 <main>
+	{#if form?.error}<p class="errbanner" role="alert">{form.error}</p>{/if}
 	{#if !data.block}
 		<!-- No plan yet -->
 		<header><h1>Ready when you are</h1></header>
@@ -330,6 +332,20 @@
 	.tweakmsg {
 		margin: 10px 0 0;
 		color: var(--accent-2);
+		font-size: 13px;
+	}
+	.errbanner {
+		margin: 0;
+		padding: 12px 14px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+		border: 1px solid var(--danger);
+		color: var(--text);
+		font-size: 14px;
+	}
+	.errmsg {
+		margin: 10px 0 0;
+		color: var(--danger);
 		font-size: 13px;
 	}
 	.linkbtn {

@@ -121,10 +121,10 @@ Done: project skeleton + PWA + Docker; data model + setup; JEFIT import
 (13k+ sets); AI exercise selection + natural-language tweaks; recovery/content-aware
 scheduling; rest timers; history page + in-exercise history; single-exercise swipe
 logging; full exercise catalog (~1000, equipment-matched, deduped); week-to-week
-progression + missed-workout phase extension + dated games; **nightly SQLite backups**.
+progression + missed-workout phase extension + dated games; **nightly SQLite backups**;
+**graceful error handling** (central `handleError`, themed error page, resilient actions).
 
 **Remaining (Phase 8–9):**
-- Error monitoring / graceful failure polish.
 - **Deploy** to the mini PC (Docker container or HA add-on). Needs on the box:
   `DATABASE_URL`, `ANTHROPIC_API_KEY`, and **`ORIGIN=https://<host>`** (adapter-node
   requires it or same-origin POSTs 403 — discovered during Phase 2).
@@ -159,6 +159,24 @@ progression + missed-workout phase extension + dated games; **nightly SQLite bac
 - Only handles local `file:` databases; a remote libsql url disables the scheduler
   (logged) and errors the CLI. **Backups live on the same disk as the db — for real
   durability, also copy `data/backups/` off-box** (e.g. HA's backup add-on or a synced folder).
+
+## Error handling (Phase 8)
+
+- **`handleError`** in `src/hooks.server.ts` is the monitoring seam: every unexpected
+  server error is logged with a short reference id + request context (`[error abc123]
+  METHOD /path (status)`), and the client only ever gets a safe message + that id
+  (never a stack trace).
+- **`src/routes/+error.svelte`** — themed dark error page showing the status, a friendly
+  message, and the reference code the user can quote.
+- **Actions fail soft, not hard.** The mutating actions on `/` (generate, tweak, advance,
+  addGame, removeGame) catch failures and return a `fail()` message rendered inline,
+  instead of a raw 500.
+- **`/workout` finish is the careful one:** the essential result (logged sets + session
+  marked done) is written in a single `db.transaction` — so a mid-write failure can't
+  half-save or let a retry double-log. The derived follow-ups (week advance, working-max
+  bumps) run best-effort after and only log on failure, since the workout is already
+  saved. The finish form uses `use:enhance`, so a failure keeps the in-progress sets on
+  screen and shows the error rather than reloading them away.
 
 ## Known limitations / notes
 

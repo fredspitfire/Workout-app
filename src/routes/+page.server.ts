@@ -74,17 +74,32 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	generate: async () => {
-		await generatePlan(db);
+		try {
+			await generatePlan(db);
+		} catch (e) {
+			console.error('[action generate]', e);
+			return fail(500, { error: 'Couldn’t generate your plan. Please try again.' });
+		}
 		throw redirect(303, '/');
 	},
 	tweak: async ({ request }) => {
 		const text = String((await request.formData()).get('tweak') ?? '').trim();
 		if (!text) return fail(400, { tweak: { ok: false, summary: 'Type a request first.', changed: 0 } });
-		const result = await applyTweak(db, text);
-		return { tweak: result };
+		try {
+			const result = await applyTweak(db, text);
+			return { tweak: result };
+		} catch (e) {
+			console.error('[action tweak]', e);
+			return fail(500, { tweak: { ok: false, summary: 'Couldn’t apply that — please try again.', changed: 0 } });
+		}
 	},
 	advance: async () => {
-		await advanceWeek(db);
+		try {
+			await advanceWeek(db);
+		} catch (e) {
+			console.error('[action advance]', e);
+			return fail(500, { error: 'Couldn’t advance the week. Please try again.' });
+		}
 		throw redirect(303, '/');
 	},
 	addGame: async ({ request }) => {
@@ -92,14 +107,24 @@ export const actions: Actions = {
 		const date = String(f.get('date') ?? '').trim();
 		const label = String(f.get('label') ?? 'Game').trim() || 'Game';
 		if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail(400, { gameError: 'Pick a date.' });
-		await db.insert(schema.datedEvents).values({ label, date, type: 'game' });
-		await generatePlan(db); // re-plan so this week accounts for the game
+		try {
+			await db.insert(schema.datedEvents).values({ label, date, type: 'game' });
+			await generatePlan(db); // re-plan so this week accounts for the game
+		} catch (e) {
+			console.error('[action addGame]', e);
+			return fail(500, { gameError: 'Couldn’t add that game. Please try again.' });
+		}
 		throw redirect(303, '/');
 	},
 	removeGame: async ({ request }) => {
 		const id = Number((await request.formData()).get('id'));
-		if (id) await db.delete(schema.datedEvents).where(eq(schema.datedEvents.id, id));
-		await generatePlan(db);
+		try {
+			if (id) await db.delete(schema.datedEvents).where(eq(schema.datedEvents.id, id));
+			await generatePlan(db);
+		} catch (e) {
+			console.error('[action removeGame]', e);
+			return fail(500, { gameError: 'Couldn’t remove that game. Please try again.' });
+		}
 		throw redirect(303, '/');
 	}
 };
