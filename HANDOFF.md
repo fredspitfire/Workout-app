@@ -127,28 +127,33 @@ logging; full exercise catalog (~1000, equipment-matched, deduped); week-to-week
 progression + missed-workout phase extension + dated games; **nightly SQLite backups**;
 **graceful error handling** (central `handleError`, themed error page, resilient actions);
 **pre-launch security audit** + input-validation hardening. AI model is `claude-sonnet-5`.
+**DEPLOYED** as a Home Assistant add-on on the owner's HA OS mini PC — running,
+serving real data on the LAN, nightly backups landing on `/share/coach/backups`.
 
-**Remaining (Phase 8–9):**
-- **Deploy** to the mini PC (HA OS baremetal → **Home Assistant add-on**, built in
-  `ha-addon/` + `repository.yaml`). Verified locally: adapter-node build boots,
-  scheduler fires at init, `ORIGIN` enforcement works. Still to do *on the box*:
-  - In HA: **Add-on Store → ⋮ → Repositories → add the GitHub repo URL**, then
-    install **Training Coach**. (See `ha-addon/DOCS.md` for the full runbook.)
-  - **Seed the DB:** copy the existing `coach.db` into `share/coach/` over Samba
-    (data + backups live there — Samba-accessible AND in HA backups).
-  - **Set options:** `origin` (exact URL, or POSTs 403), `anthropic_api_key`.
-  - **HTTPS for the Android home-screen PWA:** front port 3000 with a reverse proxy
-    (Nginx Proxy Manager + DuckDNS + Let's Encrypt) → trusted `https://…` on the LAN,
-    no ports opened. Then Chrome → Install app. (Ingress not used — its dynamic path
-    breaks the PWA scope.)
-  - **Rotate the `ANTHROPIC_API_KEY`** first (see Security below); store it only in
-    the add-on config.
-- ~~Pre-launch security audit~~ **done** (plan §17). Findings: no SQL injection
-  (Drizzle parameterizes; AI swaps are validated, engine owns weights; ORIGIN/CSRF
-  enforced). Fixed: server input validation on `/setup` and `/workout` finish. The
-  only HIGH items left are owner actions — **reverse-proxy login before internet
-  exposure** and **API-key rotation**. `npm audit` findings are all dev-only
-  (esbuild/drizzle-kit), not shipped to prod.
+**Deployment (live):**
+- Installed via the **HA add-on** in `ha-addon/` + `repository.yaml` (added as a
+  custom Add-on Store repository, slug `2e0deefa_coach`). The add-on's Dockerfile
+  clones + builds `main`; `run.sh` maps options → env and runs adapter-node.
+- Data + nightly backups live on **`/share/coach/`** (`DATABASE_URL=file:/share/coach/coach.db`,
+  `BACKUP_DIR=/share/coach/backups`) — Samba-accessible and inside HA backups. The
+  real `coach.db` (13k sets) is seeded there.
+- `origin` option = `http://homeassistant.local:3000` (must match the URL opened, or
+  form POSTs 403). Accessed on the LAN at that URL; **no ingress** (dynamic path
+  breaks the PWA scope).
+- **Gotcha:** the DB connection is opened **lazily** in `db/index.ts` (a Proxy) — do
+  NOT reintroduce a top-level `createClient`, or `vite build`'s analyse step fails in
+  any env without an existing `data/` dir (this broke the first add-on build).
+
+**Remaining:**
+- **Revoke the OLD `ANTHROPIC_API_KEY`** in the Anthropic console (owner rotated to a
+  new key in the add-on config; the exposed old one is still valid until revoked, and
+  still sits in the local `.env`). Confirm the new key works (one Adjust in-browser).
+- **Optional — remote access + Android home-screen PWA:** needs HTTPS at a stable root
+  URL. Recommended: **Tailscale** (private, simplest) or **Cloudflare Tunnel + Access**
+  (public URL + login). Ingress is unsuitable (PWA scope). Deferred by owner.
+- ~~Pre-launch security audit~~ **done** (plan §17): no SQL injection, AI swaps
+  validated, ORIGIN/CSRF enforced; input validation added on `/setup` + `/workout`.
+  `npm audit` findings are all dev-only (esbuild/drizzle-kit), not shipped.
 
 ---
 
