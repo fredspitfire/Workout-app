@@ -19,7 +19,8 @@
 		"import:jefit": "tsx src/lib/server/db/import-cli.ts",
 		"import:catalog": "tsx src/lib/server/db/import-catalog.ts",
 		"dedup:catalog": "tsx src/lib/server/db/dedup-catalog.ts",
-		"db:backup": "tsx src/lib/server/db/backup-cli.ts"
+		"db:backup": "tsx src/lib/server/db/backup-cli.ts",
+		"gen:icons": "tsx scripts/gen-icons.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
@@ -27,6 +28,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^26.0.1",
 		"drizzle-kit": "^0.31.10",
+		"sharp": "^0.35.3",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
 		"tsx": "^4.22.4",
