@@ -68,6 +68,9 @@ src/lib/server/plan/              # generatePlan.ts, splitTemplates.ts, schedule
 src/lib/server/ai/                # selectExercises.ts, tweakPlan.ts
 src/routes/                       # / (Today) , /setup, /workout, /history
 Dockerfile, .dockerignore         # adapter-node build -> container
+ha-addon/                         # Home Assistant add-on (config.yaml, Dockerfile,
+                                  # run.sh, DOCS.md) + repository.yaml at repo root
+scripts/gen-icons.ts              # regenerate PWA PNG icons from static/icon.svg
 spikes/                           # dev-only diagnostics/harnesses (not shipped)
 Jefit Data/                       # owner's CSV export (gitignored, personal)
 ```
@@ -126,16 +129,20 @@ progression + missed-workout phase extension + dated games; **nightly SQLite bac
 **pre-launch security audit** + input-validation hardening. AI model is `claude-sonnet-5`.
 
 **Remaining (Phase 8–9):**
-- **Deploy** to the mini PC (Docker container or HA add-on). Verified locally: the
-  adapter-node production build succeeds, the built server boots (backup scheduler
-  fires at init), and `ORIGIN` enforcement works (same-origin POST accepted, cross-
-  origin 403'd). Still to do *on the box*:
-  - Set env: `DATABASE_URL`, `ANTHROPIC_API_KEY`, **`ORIGIN=https://<host>`**
-    (adapter-node requires it or same-origin POSTs 403 — discovered during Phase 2).
-  - **Mount a persistent volume at `/app/data`** (`-v /host/path:/app/data`) or a
-    restart wipes the db + backups. The Dockerfile now declares `VOLUME /app/data`.
-  - Put a **login behind the reverse proxy** before internet exposure (single-user).
-  - **Rotate the `ANTHROPIC_API_KEY`** first (see Security below).
+- **Deploy** to the mini PC (HA OS baremetal → **Home Assistant add-on**, built in
+  `ha-addon/` + `repository.yaml`). Verified locally: adapter-node build boots,
+  scheduler fires at init, `ORIGIN` enforcement works. Still to do *on the box*:
+  - In HA: **Add-on Store → ⋮ → Repositories → add the GitHub repo URL**, then
+    install **Training Coach**. (See `ha-addon/DOCS.md` for the full runbook.)
+  - **Seed the DB:** copy the existing `coach.db` into `share/coach/` over Samba
+    (data + backups live there — Samba-accessible AND in HA backups).
+  - **Set options:** `origin` (exact URL, or POSTs 403), `anthropic_api_key`.
+  - **HTTPS for the Android home-screen PWA:** front port 3000 with a reverse proxy
+    (Nginx Proxy Manager + DuckDNS + Let's Encrypt) → trusted `https://…` on the LAN,
+    no ports opened. Then Chrome → Install app. (Ingress not used — its dynamic path
+    breaks the PWA scope.)
+  - **Rotate the `ANTHROPIC_API_KEY`** first (see Security below); store it only in
+    the add-on config.
 - ~~Pre-launch security audit~~ **done** (plan §17). Findings: no SQL injection
   (Drizzle parameterizes; AI swaps are validated, engine owns weights; ORIGIN/CSRF
   enforced). Fixed: server input validation on `/setup` and `/workout` finish. The

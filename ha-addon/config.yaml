@@ -1,0 +1,29 @@
+name: Training Coach
+version: "1.0.0"
+slug: coach
+description: Personal adaptive training coach — self-hosted PWA
+url: https://github.com/fredspitfire/Workout-app
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: auto
+# Web UI. Point your browser (LAN) or reverse proxy (for HTTPS) at this port.
+ports:
+  "3000/tcp": 3000
+ports_description:
+  "3000/tcp": Web UI — open directly on the LAN, or front it with a reverse proxy for HTTPS
+# The database + nightly backups live on /share/coach so they're reachable over
+# Samba (to seed and to grab backups) AND included in Home Assistant backups.
+map:
+  - share:rw
+options:
+  origin: ""
+  anthropic_api_key: ""
+  backup_retention: 14
+  backup_hour: 3
+schema:
+  origin: str?
+  anthropic_api_key: password?
+  backup_retention: int(1,90)?
+  backup_hour: int(0,23)?
