@@ -21,24 +21,36 @@ export const load: PageServerLoad = async () => {
 	return { profile: profile ?? null, commitments, equipment };
 };
 
+// Whitelists — reject anything not in the allowed set (fall back to a safe default)
+// so a crafted or malformed POST can't wedge plan generation with junk values.
+const GOALS = ['strength', 'hypertrophy', 'general', 'hockey'] as const;
+const SPLITS = ['auto', 'fullbody', 'upper_lower', 'ppl'] as const;
+const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+
+const oneOf = <T extends readonly string[]>(v: FormDataEntryValue | null, allowed: T, fallback: T[number]): T[number] =>
+	(allowed as readonly string[]).includes(String(v)) ? (String(v) as T[number]) : fallback;
+
+/** Parse to an integer within [min,max]; non-numeric or out-of-range → clamped/fallback. */
+const intIn = (v: FormDataEntryValue | null, min: number, max: number, fallback: number): number => {
+	const n = Math.round(Number(v));
+	if (!Number.isFinite(n)) return fallback;
+	return Math.min(max, Math.max(min, n));
+};
+
 export const actions: Actions = {
 	default: async ({ request }) => {
 		const f = await request.formData();
 
-		const goal = String(f.get('goal') ?? 'strength') as Goal;
-		const splitType = String(f.get('splitType') ?? 'auto') as
-			| 'auto'
-			| 'fullbody'
-			| 'upper_lower'
-			| 'ppl';
-		const experience = String(f.get('experience') ?? 'intermediate') as
-			| 'beginner'
-			| 'intermediate'
-			| 'advanced';
-		const sessionsPerWeek = Number(f.get('sessionsPerWeek') ?? 3);
-		const timeBudgetMin = Number(f.get('timeBudgetMin') ?? 60);
-		const commitmentLabel = String(f.get('commitmentLabel') ?? 'Hockey').trim() || 'Hockey';
-		const days = f.getAll('commitmentDays').map((d) => Number(d));
+		const goal = oneOf(f.get('goal'), GOALS, 'strength') as Goal;
+		const splitType = oneOf(f.get('splitType'), SPLITS, 'auto');
+		const experience = oneOf(f.get('experience'), LEVELS, 'intermediate');
+		const sessionsPerWeek = intIn(f.get('sessionsPerWeek'), 1, 7, 3);
+		const timeBudgetMin = intIn(f.get('timeBudgetMin'), 10, 240, 60);
+		const commitmentLabel = String(f.get('commitmentLabel') ?? 'Hockey').trim().slice(0, 40) || 'Hockey';
+		// Only valid weekdays (0–6), de-duplicated.
+		const days = [...new Set(f.getAll('commitmentDays').map((d) => Number(d)))].filter(
+			(d) => Number.isInteger(d) && d >= 0 && d <= 6
+		);
 
 		// Upsert the single profile row.
 		const values = { currentGoal: goal, splitType, experience, sessionsPerWeek, timeBudgetMin, updatedAt: Date.now() };

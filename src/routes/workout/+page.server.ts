@@ -83,10 +83,31 @@ export const actions: Actions = {
 			return fail(400, { error: 'bad payload' });
 		}
 
+		// Validate the client-supplied payload before it touches the DB. Everything is
+		// parameterized (no injection risk), but this keeps out NaN/negative/garbage
+		// rows and bad ids that would corrupt history or wedge the follow-up steps.
+		if (
+			!Number.isInteger(payload.sessionId) ||
+			payload.sessionId <= 0 ||
+			!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.date)) ||
+			!Array.isArray(payload.exercises)
+		) {
+			return fail(400, { error: 'bad payload' });
+		}
+		const cleanExercises = payload.exercises
+			.filter((ex) => Number.isInteger(ex.exerciseId) && ex.exerciseId > 0)
+			.map((ex) => ({
+				exerciseId: ex.exerciseId,
+				repTarget: Number.isFinite(ex.repTarget) ? ex.repTarget : 0,
+				sets: (Array.isArray(ex.sets) ? ex.sets : [])
+					.filter((s) => Number.isFinite(s.weight) && s.weight >= 0 && Number.isFinite(s.reps) && s.reps >= 0)
+					.map((s) => ({ weight: s.weight, reps: Math.round(s.reps) }))
+			}));
+
 		// 1. Persist the essential result atomically: every logged set + the session
 		//    marked done. In one transaction so a mid-write failure can't leave the
 		//    session "done" with no sets, or half-inserted sets that a retry doubles.
-		const rows = payload.exercises.flatMap((ex) =>
+		const rows = cleanExercises.flatMap((ex) =>
 			ex.sets.map((s, i) => ({
 				sessionId: payload.sessionId,
 				exerciseId: ex.exerciseId,
@@ -130,7 +151,7 @@ export const actions: Actions = {
 
 			// Update each exercise's stored working max. Only ever RAISE it — an
 			// intentionally-light On-Ramp session must not drag your true max down.
-			for (const ex of payload.exercises) {
+			for (const ex of cleanExercises) {
 				const achieved = topAchieved(ex.sets as WorkingSet[], ex.repTarget);
 				if (achieved <= 0) continue;
 				const [existing] = await db
