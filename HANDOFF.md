@@ -46,8 +46,9 @@ npm run import:jefit   # imports ./Jefit Data/*.csv (owner's history) — one-ti
 npm run dev -- --host  # dev server (loads .env)
 ```
 
-Other scripts: `build`, `preview`, `check`, `db:studio`, `dedup:catalog`, and dev
-spikes (`explore`, `sanity`, `ramp`) under `spikes/`.
+Other scripts: `build`, `preview`, `check`, `db:studio`, `dedup:catalog`,
+`db:backup` (one-off SQLite snapshot), and dev spikes (`explore`, `sanity`, `ramp`,
+`backup-sanity`) under `spikes/`.
 
 **Env** (`.env`, gitignored):
 - `DATABASE_URL=file:./data/coach.db`
@@ -120,11 +121,9 @@ Done: project skeleton + PWA + Docker; data model + setup; JEFIT import
 (13k+ sets); AI exercise selection + natural-language tweaks; recovery/content-aware
 scheduling; rest timers; history page + in-exercise history; single-exercise swipe
 logging; full exercise catalog (~1000, equipment-matched, deduped); week-to-week
-progression + missed-workout phase extension + dated games.
+progression + missed-workout phase extension + dated games; **nightly SQLite backups**.
 
 **Remaining (Phase 8–9):**
-- Auto **SQLite backups** (nightly copy of `data/coach.db`) — highest priority, it's
-  the owner's whole history.
 - Error monitoring / graceful failure polish.
 - **Deploy** to the mini PC (Docker container or HA add-on). Needs on the box:
   `DATABASE_URL`, `ANTHROPIC_API_KEY`, and **`ORIGIN=https://<host>`** (adapter-node
@@ -146,6 +145,20 @@ progression + missed-workout phase extension + dated games.
   the reverse proxy before exposing it to the internet.
 
 ---
+
+## Backups (Phase 8)
+
+- `src/lib/server/backup.ts` — `VACUUM INTO` produces a consistent single-file snapshot
+  even mid-write. `startBackupScheduler` runs it nightly (default 3am local) and prunes
+  to the newest N (default 14); it also takes a catch-up snapshot at boot if the last
+  one is missing or >20h old (covers a box that was off overnight).
+- Wired in at server boot via `src/hooks.server.ts`. Snapshots land in `data/backups/`
+  (gitignored). Tune with `BACKUP_DIR`, `BACKUP_RETENTION`, `BACKUP_HOUR` (see `.env.example`).
+- `npm run db:backup` takes a one-off snapshot now (good before risky changes, or from
+  an external cron). Sanity harness: `spikes/backup-sanity.ts`.
+- Only handles local `file:` databases; a remote libsql url disables the scheduler
+  (logged) and errors the CLI. **Backups live on the same disk as the db — for real
+  durability, also copy `data/backups/` off-box** (e.g. HA's backup add-on or a synced folder).
 
 ## Known limitations / notes
 
