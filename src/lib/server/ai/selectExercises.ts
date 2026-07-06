@@ -8,7 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '$env/dynamic/private';
 
-const MODEL = 'claude-sonnet-5';
+const MODEL = 'claude-sonnet-4-6';
 
 export interface Candidate {
 	id: number;
@@ -52,9 +52,6 @@ export async function selectExercises(
 		const res = await client.messages.create({
 			model: MODEL,
 			max_tokens: 1500,
-			// Structured JSON pick — no reasoning needed. Sonnet 5 runs adaptive
-			// thinking by default; disable it to keep this fast, cheap, and within budget.
-			thinking: { type: 'disabled' },
 			system: SYSTEM,
 			messages: [{ role: 'user', content: JSON.stringify(payload) }]
 		});

@@ -27,7 +27,7 @@ hockey-game calendar and recovering gracefully from missed workouts.
 |---|---|
 | App | SvelteKit (Svelte 5 runes) + `@sveltejs/adapter-node` |
 | DB | SQLite via `@libsql/client` + Drizzle ORM (single file `data/coach.db`) |
-| AI | `@anthropic-ai/sdk`, model `claude-sonnet-5` (thinking disabled for the JSON calls) |
+| AI | `@anthropic-ai/sdk`, model `claude-sonnet-4-6` |
 | Frontend | PWA (installable, dark mobile-first), server-rendered |
 | Deploy target | Docker container on the owner's Home Assistant **mini PC** (not a Lovelace dashboard); phone uses the PWA icon |
 
@@ -126,7 +126,7 @@ scheduling; rest timers; history page + in-exercise history; single-exercise swi
 logging; full exercise catalog (~1000, equipment-matched, deduped); week-to-week
 progression + missed-workout phase extension + dated games; **nightly SQLite backups**;
 **graceful error handling** (central `handleError`, themed error page, resilient actions);
-**pre-launch security audit** + input-validation hardening. AI model is `claude-sonnet-5`.
+**pre-launch security audit** + input-validation hardening. AI model is `claude-sonnet-4-6`.
 **DEPLOYED** as a Home Assistant add-on on the owner's HA OS mini PC — running,
 serving real data on the LAN, nightly backups landing on `/share/coach/backups`.
 
@@ -213,6 +213,6 @@ serving real data on the LAN, nightly backups landing on `/share/coach/backups`.
   prior week's planned sessions; logged history is preserved in `logged_sets`).
 - Week boundaries are approximate (dates computed from "today" at generate/advance).
 - Offline logging is a nice-to-have, not implemented (owner has signal at home).
-- Model id is set in `selectExercises.ts` and `tweakPlan.ts` (`claude-sonnet-5`, with
-  `thinking: {type:'disabled'}` on the structured-JSON calls); could be centralized /
-  swapped to Haiku for lower cost. Usage is tiny (single user), so cost is negligible.
+- Model id is set in `selectExercises.ts` and `tweakPlan.ts` (`claude-sonnet-4-6` —
+  reverted from `claude-sonnet-5`, whose new tokenizer used ~30% more tokens); could be
+  centralized / swapped to Haiku for lower cost. Usage is tiny (single user).
